@@ -1,5 +1,6 @@
 package cz.metacentrum.perun.core.googlegroupconnector;
 
+import cz.metacentrum.perun.core.googlegroupconnector.exceptions.GoogleGroupsIOException;
 import com.google.api.services.admin.directory.Directory;
 import com.google.api.services.admin.directory.model.Group;
 import com.google.api.services.admin.directory.model.Groups;
@@ -17,9 +18,10 @@ import java.util.List;
 import org.slf4j.LoggerFactory;
 
 /**
- * Class representing google_groups service for Perun.
- * It work with GoogleGroupsConnection, which prepares connection to Google Groups via API
- * and then handles propagation of changes from Perun to Google Groups (insert/delete entries);
+ * Class representing google_groups service for Perun. It work with
+ * GoogleGroupsConnection, which prepares connection to Google Groups via API
+ * and then handles propagation of changes from Perun to Google Groups
+ * (insert/delete entries);
  *
  * @author Sona Mastrakova <sona.mastrakova@gmail.com>
  * @date 29.7.2015
@@ -30,11 +32,10 @@ public class GoogleGroupsService {
     private static Directory service;
     private String domainName;
     private String groupName;
-    private List groups;
+    private List groupsInPerun;
     private List membersInPerun;
 
-    public void compareAndPropagateData(File file) {
-
+    public void compareAndPropagateData(File file) throws GoogleGroupsIOException {
         FileReader fileReader = null;
         try {
             fileReader = new FileReader(file);
@@ -51,7 +52,7 @@ public class GoogleGroupsService {
                 log.error("File contains no rows.");
                 throw new IllegalArgumentException("File contains no rows.");
             } else {
-                groups = new ArrayList<>(Arrays.asList(row));
+                groupsInPerun = new ArrayList<>(Arrays.asList(row));
 
                 /* extracts domain name from group's name (everything after '@')
                  and compares with user's domain from properties */
@@ -59,7 +60,7 @@ public class GoogleGroupsService {
                 this.compareGroups();
             }
 
-            // all other rows contain groups' members
+            // all other rows contain groups' members in Perun
             while ((row = reader.readNext()) != null) {
                 this.groupName = row[0];
 
@@ -70,14 +71,14 @@ public class GoogleGroupsService {
                 this.compareMembers();
             }
         } catch (FileNotFoundException ex) {
-            log.error("File was not found in compareAndPropagateData(File file).", ex);
+            log.error("File " + file.getAbsolutePath() + " was not found in compareAndPropagateData(File file).", ex);
         } catch (IOException ex) {
-            log.error("Problem with I/O operation while reading lines of file by FileReader.readNext() or getting file.", ex);
+            log.error("Problem with I/O operation while reading lines of file " + file.getAbsolutePath() + " by FileReader.readNext() or getting file.", ex);
         } finally {
             try {
                 fileReader.close();
             } catch (IOException ex) {
-                log.error("Problem with I/O operation while closing file.", ex);
+                log.error("Problem with I/O operation while closing file " + file.getAbsolutePath() + ".", ex);
             }
         }
     }
@@ -107,64 +108,84 @@ public class GoogleGroupsService {
      * group(s) in Perun and also group(s) in Perun compare with group(s) in
      * Google Groups.
      *
-     * @throws IOException
+     * @throws GoogleGroupsIOException
      */
-    private void compareGroups() throws IOException {
-        try {
-            Groups result = service.groups().list().setDomain(domainName).execute();
-            if (result.isEmpty()) {
-                String msg = "Google Groups returned no groups.";
-                log.error(msg);
-                throw new NullPointerException(msg);
-            }
+    private void compareGroups() throws GoogleGroupsIOException {
+        Groups result = this.getDomainGroups();
 
-            List<Group> groupsInDomain = result.getGroups();
+        if (result.isEmpty()) {
+            String msg = "Google Groups returned no groups.";
+            log.error(msg);
+            throw new NullPointerException(msg);
+        }
 
-            if (groupsInDomain != null && !groupsInDomain.isEmpty()) {
+        List<Group> groupsInDomain = result.getGroups();
+        if (groupsInDomain != null && !groupsInDomain.isEmpty()) {
 
-                // check if there's any group that needs to be added to domain
-                for (Object groupInPerun : groups) {
-                    boolean isInDomain = false;
+            // check if there's any group that needs to be added to domain
+            for (Object groupInPerun : groupsInPerun) {
+                boolean isInDomain = false;
 
-                    for (Group groupInDomain : groupsInDomain) {
-                        if (groupInDomain.getEmail().equals(((String) groupInPerun).toLowerCase())) {
-                            isInDomain = true;
-                        }
-                    }
-
-                    if (!isInDomain) {
-                        Group addedGroup = new Group();
-                        addedGroup.setEmail(((String) groupInPerun).toLowerCase());
-                        service.groups().insert(addedGroup).execute();
-                    }
-                }
-
-                // check if there's any group that needs to be removed from domain
                 for (Group groupInDomain : groupsInDomain) {
-                    boolean shouldBeRemoved = true;
-
-                    for (Object groupInPerun : groups) {
-                        if (groupInDomain.getEmail().equals(((String) groupInPerun).toLowerCase())) {
-                            shouldBeRemoved = false;
-                        }
-                    }
-
-                    // group was not found in Perun
-                    if (shouldBeRemoved) {
-                        service.groups().delete(groupInDomain.getEmail()).execute();
+                    if (groupInDomain.getEmail().equals(((String) groupInPerun).toLowerCase())) {
+                        isInDomain = true;
                     }
                 }
-            } else {
-                for (Object groupInPerun : groups) {
-                    String groupMailInPerun = ((String) groupInPerun).toLowerCase();
 
+                if (!isInDomain) {
                     Group addedGroup = new Group();
-                    addedGroup.setEmail(groupMailInPerun);
-                    service.groups().insert(addedGroup).execute();
+                    addedGroup.setEmail(((String) groupInPerun).toLowerCase());
+                    this.insertGroup(addedGroup);
                 }
             }
+
+            // check if there's any group that needs to be removed from domain
+            for (Group groupInDomain : groupsInDomain) {
+                boolean shouldBeRemoved = true;
+
+                for (Object groupInPerun : groupsInPerun) {
+                    if (groupInDomain.getEmail().equals(((String) groupInPerun).toLowerCase())) {
+                        shouldBeRemoved = false;
+                    }
+                }
+
+                // group was not found in Perun
+                if (shouldBeRemoved) {
+                    this.deleteGroup(groupInDomain.getEmail());
+                }
+            }
+        } else {
+            for (Object groupInPerun : groupsInPerun) {
+                String groupMailInPerun = ((String) groupInPerun).toLowerCase();
+
+                Group addedGroup = new Group();
+                addedGroup.setEmail(groupMailInPerun);
+                this.insertGroup(addedGroup);
+            }
+        }
+    }
+
+    private Groups getDomainGroups() throws GoogleGroupsIOException {
+        try {
+            return service.groups().list().setDomain(domainName).execute();
         } catch (IOException ex) {
-            throw new IOException("Something went wrong while inserting/deleting/getting group from Google Groups", ex);
+            throw new GoogleGroupsIOException("Something went wrong while getting groups from domain " + domainName + " in Google Groups", ex);
+        }
+    }
+
+    private void insertGroup(Group group) throws GoogleGroupsIOException {
+        try {
+            service.groups().insert(group).execute();
+        } catch (IOException ex) {
+            throw new GoogleGroupsIOException("Something went wrong while inserting group " + group.getEmail() + " to Google Groups", ex);
+        }
+    }
+
+    private void deleteGroup(String email) throws GoogleGroupsIOException {
+        try {
+            service.groups().delete(email).execute();
+        } catch (IOException ex) {
+            throw new GoogleGroupsIOException("Something went wrong while deleting group " + email + " from Google Groups", ex);
         }
     }
 
@@ -177,72 +198,92 @@ public class GoogleGroupsService {
      * - If group is not empty, then we need to compare this member(s) with
      * member(s) in Perun and also member(s) in Perun compare with member(s) in
      * group from Google Groups.
-     * 
-     * @throws IOException
+     *
+     * @throws GoogleGroupsIOException
      */
-    private void compareMembers() throws IOException {
-        try {
-            Members result = service.members().list(groupName).execute();
-            if (result.isEmpty()) {
-                String msg = "Google Groups returned no groups.";
-                log.error(msg);
-                throw new NullPointerException(msg);
-            }
+    private void compareMembers() throws GoogleGroupsIOException {
+        Members result = this.getGroupsMembers();
+        if (result.isEmpty()) {
+            String msg = "Google Groups returned no groups.";
+            log.error(msg);
+            throw new NullPointerException(msg);
+        }
+        System.out.println("searching for group members");
+        List<Member> membersInGroup = result.getMembers();
+        if (membersInGroup != null && !membersInGroup.isEmpty()) {
+            // check if there's any member that needs to be added to group
+            for (Object memberInPerun : membersInPerun) {
+                boolean isInGroup = false;
 
-            List<Member> membersInGroup = result.getMembers();
-
-            if (membersInGroup != null && !membersInGroup.isEmpty()) {
-                // check if there's any member that needs to be added to group
-                for (Object memberInPerun : membersInPerun) {
-                    boolean isInGroup = false;
-
-                    for (Member memberInGroup : membersInGroup) {
-                        if (memberInGroup.getId().equals((String) memberInPerun)) {
-                            isInGroup = true;
-                        }
-                    }
-
-                    if (!isInGroup) {
-                        String memberIdInPerun = (String) memberInPerun;
-
-                        Member member = new Member();
-                        member.setId(memberIdInPerun);
-
-                        service.members().insert(groupName, member).execute();
-                    }
-                }
-
-                // check if there's any member that needs to be removed from group
                 for (Member memberInGroup : membersInGroup) {
-                    boolean shouldBeRemoved = true;
-
-                    for (Object memberInPerun : membersInPerun) {
-                        if (memberInGroup.getId().equals((String) memberInPerun)) {
-                            shouldBeRemoved = false;
-                        }
-                    }
-
-                    // member was not found in Perun
-                    if (shouldBeRemoved) {
-                        service.members().delete(groupName, memberInGroup.getId()).execute();
+                    if (memberInGroup.getId().equals((String) memberInPerun)) {
+                        isInGroup = true;
                     }
                 }
-            } else {
-                for (Object memberInPerun : membersInPerun) {
-                    String memberIdInPPerun = (String) memberInPerun;
+
+                if (!isInGroup) {
+                    String memberIdInPerun = (String) memberInPerun;
 
                     Member member = new Member();
-                    member.setId(memberIdInPPerun);
+                    member.setId(memberIdInPerun);
 
-                    service.members().insert(groupName, member).execute();
+                    this.insertMember(member);
                 }
             }
-        } catch (IOException ex) {
-            throw new IOException("Something went wrong while inserting/deleting/getting group from Google Groups", ex);
+
+            // check if there's any member that needs to be removed from group
+            for (Member memberInGroup : membersInGroup) {
+                boolean shouldBeRemoved = true;
+
+                for (Object memberInPerun : membersInPerun) {
+                    if (memberInGroup.getId().equals((String) memberInPerun)) {
+                        shouldBeRemoved = false;
+                    }
+                }
+
+                // member was not found in Perun
+                if (shouldBeRemoved) {
+                    this.deleteMember(memberInGroup.getId());
+                }
+            }
+        } else {
+            System.out.println("adding members...");
+            for (Object memberInPerun : membersInPerun) {
+                String memberIdInPPerun = (String) memberInPerun;
+
+                Member member = new Member();
+                member.setId(memberIdInPPerun);
+
+                this.insertMember(member);
+            }
         }
     }
 
-    public static void main(String[] args) throws IOException, GeneralSecurityException {
+    private Members getGroupsMembers() throws GoogleGroupsIOException {
+        try {
+            return service.members().list(groupName).execute();
+        } catch (IOException ex) {
+            throw new GoogleGroupsIOException("Something went wrong while getting members of group " + groupName + " in Google Groups", ex);
+        }
+    }
+
+    private void insertMember(Member member) throws GoogleGroupsIOException {
+        try {
+            service.members().insert(groupName, member).execute();
+        } catch (IOException ex) {
+            throw new GoogleGroupsIOException("Something went wrong while inserting member " + member.getEmail() + " into group " + groupName + " in Google Groups", ex);
+        }
+    }
+
+    private void deleteMember(String memberId) throws GoogleGroupsIOException {
+        try {
+            service.members().delete(groupName, memberId).execute();
+        } catch (IOException ex) {
+            throw new GoogleGroupsIOException("Something went wrong while deleting member with ID " + memberId + " from group " + groupName + " in Google Groups", ex);
+        }
+    }
+
+    public static void main(String[] args) throws IOException, GeneralSecurityException, GoogleGroupsIOException {
         String filePath = null;
         String domainFile = "/etc/perun/google_groups-";
 
