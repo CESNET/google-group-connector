@@ -35,7 +35,7 @@ public class GoogleGroupsConnection {
     /**
      * Path to properties file.
      */
-    private static final String PROPERTIES_PATH = "/etc/perun/google_groups.properties";
+    private static String PROPERTIES_PATH;
 
     /**
      * Application name.
@@ -73,11 +73,12 @@ public class GoogleGroupsConnection {
      * Generated at https://console.developers.google.com/project according to
      * https://developers.google.com/identity/protocols/OAuth2ServiceAccount#creatinganaccount
      */
-    private static final String SERVICE_ACCOUNT_PKCS12_FILE_PATH = "/etc/perun/client_secret_pkcs12.p12";
+    private static String SERVICE_ACCOUNT_PKCS12_FILE_PATH;
 
     private final static org.slf4j.Logger log = LoggerFactory.getLogger(GoogleGroupsConnection.class);
 
-    public GoogleGroupsConnection() throws IOException, GeneralSecurityException {
+    public GoogleGroupsConnection(String domainFile) throws IOException, GeneralSecurityException {
+        GoogleGroupsConnection.PROPERTIES_PATH = domainFile;
         this.loadProperties();
     }
 
@@ -108,6 +109,7 @@ public class GoogleGroupsConnection {
             // store values from properties file in static variables
             GoogleGroupsConnection.SERVICE_ACCOUNT_EMAIL = prop.getProperty("service_account_email");
             GoogleGroupsConnection.USER_EMAIL = prop.getProperty("user_email");
+            GoogleGroupsConnection.SERVICE_ACCOUNT_PKCS12_FILE_PATH = prop.getProperty("service_account_pkcs12_file_path");
             GoogleGroupsConnection.JSON_FACTORY = JacksonFactory.getDefaultInstance();
             GoogleGroupsConnection.HTTP_TRANSPORT = GoogleNetHttpTransport.newTrustedTransport();
             GoogleGroupsConnection.SCOPES = Arrays.asList(DirectoryScopes.ADMIN_DIRECTORY_USER,

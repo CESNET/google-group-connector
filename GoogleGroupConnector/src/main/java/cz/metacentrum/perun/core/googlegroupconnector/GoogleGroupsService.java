@@ -244,11 +244,13 @@ public class GoogleGroupsService {
 
     public static void main(String[] args) throws IOException, GeneralSecurityException {
         String filePath = null;
+        String domainFile = "/etc/perun/google_groups-";
 
-        if (args.length > 0) {
+        if (args.length > 1) {
             filePath = args[0];
+            domainFile = domainFile + args[1] + ".properties";
         } else {
-            throw new IllegalArgumentException("Main class has no input arguments.");
+            throw new IllegalArgumentException("Main class has wrong number of input arguments (less than 2).");
         }
 
         if (filePath == null || filePath.isEmpty()) {
@@ -257,7 +259,7 @@ public class GoogleGroupsService {
         }
 
         File inputFile = new File(filePath);
-        GoogleGroupsConnection connection = new GoogleGroupsConnection();
+        GoogleGroupsConnection connection = new GoogleGroupsConnection(domainFile);
         service = connection.getDirectoryService();
         GoogleGroupsService session = new GoogleGroupsService();
         session.domainName = connection.getDomainName();
