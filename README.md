@@ -2,14 +2,17 @@
 
 This repository contains java application, used by [Perun](http://perun.cesnet.cz/web/) to connect to [Google Groups](https://support.google.com/groups/answer/46601?hl=en) and synchronize users from Perun to Google Groups. Sources of the Perun are located in another [repository](https://github.com/CESNET/perun).
 
+You can also use this application on it's own. You just need to make necessary setup and pass input file in expected format.
+
 ## Requirements
+
 * Java >= 1.6
 * Maven >= 3.1.x
-* Google Apps account
+* G-Suite account
 
 ## Configuration
 
-### Set your Google Apps account
+### Set your G-Suite account
 
 Firstly, generate your service account email in your Developers Console according to [this guide](https://developers.google.com/identity/protocols/OAuth2ServiceAccount#creatinganaccount).
 
