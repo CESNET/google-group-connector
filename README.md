@@ -2,13 +2,14 @@
 
 This repository contains java application, used by [Perun](http://perun.cesnet.cz/web/) to connect to [Google Groups](https://support.google.com/groups/answer/46601?hl=en) and synchronize users from Perun to Google Groups. Sources of the Perun are located in another [repository](https://github.com/CESNET/perun).
 
-##Requirements
+## Requirements
 * Java >= 1.6
 * Maven >= 3.1.x
 * Google Apps account
 
-##Configuration
-###Set your Google Apps account
+## Configuration
+
+### Set your Google Apps account
 
 Firstly, generate your service account email in your Developers Console according to [this guide](https://developers.google.com/identity/protocols/OAuth2ServiceAccount#creatinganaccount).
 
@@ -16,7 +17,7 @@ Secondly, generate your P12 key in your Developers Console.
 
 Thirdly, set your API Scopes according to [this guide](https://developers.google.com/identity/protocols/OAuth2ServiceAccount#delegatingauthority) to be able to access Google Groups data via service account. Otherwise, you will get `Insufficient Permission Exception`.
 
-###Create necessary files
+### Create necessary files
 
 Properties file is necessary for successful execution of the application. Name your properties file according to your domain name. E.g. if your domain name is **nonexisting.domain.org** then your properties file would be named like this:
 
@@ -39,7 +40,7 @@ groupName2@nonexisting.domain.org member1ID
 groupName3@nonexisting.domain.org member2ID member3ID
 ```
 
-##Example
+## Example
 
 Main class of the application needs input arguments for successful execution. First argument should be path to file containing all groups and its members, as described above. Second argument should be name of the domain that you work with. You need to run something like this (with JAVA_HOME explicitely set):
 
