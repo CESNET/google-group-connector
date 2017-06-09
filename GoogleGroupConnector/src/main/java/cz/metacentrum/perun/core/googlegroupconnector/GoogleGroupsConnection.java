@@ -8,11 +8,11 @@ import com.google.api.services.admin.directory.Directory;
  * @author Sona Mastrakova <sona.mastrakova@gmail.com>
  */
 public interface GoogleGroupsConnection {
-    
-    /**
-     * Build and returns an authorized Directory service object.
-     *
-     * @return Directory service object that is ready to make requests.
-     */
-    public Directory getDirectoryService();
+
+	/**
+	 * Build and returns an authorized Directory service object.
+	 *
+	 * @return Directory service object that is ready to make requests.
+	 */
+	public Directory getDirectoryService();
 }

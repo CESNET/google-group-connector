@@ -6,19 +6,19 @@ package cz.metacentrum.perun.core.googlegroupconnector.exceptions;
  */
 public class GoogleGroupsIOException extends Exception {
 
-    public GoogleGroupsIOException() {
-        super();
-    }
+	public GoogleGroupsIOException() {
+		super();
+	}
 
-    public GoogleGroupsIOException(String msg) {
-        super(msg);
-    }
+	public GoogleGroupsIOException(String msg) {
+		super(msg);
+	}
 
-    public GoogleGroupsIOException(Throwable cause) {
-        super(cause);
-    }
+	public GoogleGroupsIOException(Throwable cause) {
+		super(cause);
+	}
 
-    public GoogleGroupsIOException(String msg, Throwable cause) {
-        super(msg, cause);
-    }
+	public GoogleGroupsIOException(String msg, Throwable cause) {
+		super(msg, cause);
+	}
 }
