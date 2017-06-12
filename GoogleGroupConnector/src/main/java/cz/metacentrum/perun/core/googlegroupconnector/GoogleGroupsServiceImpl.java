@@ -6,6 +6,8 @@ import com.google.api.services.admin.directory.model.Group;
 import com.google.api.services.admin.directory.model.Groups;
 import com.google.api.services.admin.directory.model.Member;
 import com.google.api.services.admin.directory.model.Members;
+import com.google.api.services.admin.directory.model.User;
+import com.google.api.services.admin.directory.model.Users;
 import com.opencsv.CSVReader;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -25,7 +27,7 @@ import org.slf4j.LoggerFactory;
  * Groups (insert/delete entries);
  *
  * @author Sona Mastrakova <sona.mastrakova@gmail.com>
- * @date 29.7.2015
+ * @author Pavel Zlamal <zlamal@cesnet.cz>
  */
 public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 
@@ -35,6 +37,39 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 	private String groupName;
 	private List groupsInPerun;
 	private List membersInPerun;
+
+	/**
+	 * Main method starting (de)provisioning of Google Groups on your domain.
+	 *
+	 * @param args [0] path to file with user/group data [1] domain name
+	 * @throws IOException When reading of input file fails
+	 * @throws GeneralSecurityException When connector is unable to access Google Groups API
+	 * @throws GoogleGroupsIOException When specific API call to Google Groups returns Exception
+	 */
+	public static void main(String[] args) throws IOException, GeneralSecurityException, GoogleGroupsIOException {
+		String filePath = null;
+		String domainFile = "/etc/perun/google_groups-";
+
+		if (args.length > 1) {
+			filePath = args[0];
+			domainFile = domainFile + args[1] + ".properties";
+		} else {
+			throw new IllegalArgumentException("Main class has wrong number of input arguments (less than 2).");
+		}
+
+		if (filePath == null || filePath.isEmpty()) {
+			log.error("File path is empty.");
+			throw new IllegalArgumentException("File path can't be empty.");
+		}
+
+		File inputFile = new File(filePath);
+		GoogleGroupsConnectionImpl connection = new GoogleGroupsConnectionImpl(domainFile);
+		service = connection.getDirectoryService();
+		GoogleGroupsServiceImpl session = new GoogleGroupsServiceImpl();
+		session.domainName = connection.getDomainName();
+		session.compareAndPropagateData(inputFile);
+
+	}
 
 	@Override
 	public void compareAndPropagateData(File file) throws GoogleGroupsIOException {
@@ -61,6 +96,8 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 				this.compareDomain(row[0].substring(row[0].indexOf("@") + 1));
 				this.compareGroups();
 			}
+
+			// TODO manager users in domain
 
 			// all other rows contain groups' members in Perun
 			while ((row = reader.readNext()) != null) {
@@ -167,29 +204,6 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 		}
 	}
 
-	private Groups getDomainGroups() throws GoogleGroupsIOException {
-		try {
-			return service.groups().list().setDomain(domainName).execute();
-		} catch (IOException ex) {
-			throw new GoogleGroupsIOException("Something went wrong while getting groups from domain " + domainName + " in Google Groups", ex);
-		}
-	}
-
-	private void insertGroup(Group group) throws GoogleGroupsIOException {
-		try {
-			service.groups().insert(group).execute();
-		} catch (IOException ex) {
-			throw new GoogleGroupsIOException("Something went wrong while inserting group " + group.getEmail() + " to Google Groups", ex);
-		}
-	}
-
-	private void deleteGroup(String email) throws GoogleGroupsIOException {
-		try {
-			service.groups().delete(email).execute();
-		} catch (IOException ex) {
-			throw new GoogleGroupsIOException("Something went wrong while deleting group " + email + " from Google Groups", ex);
-		}
-	}
 
 	/**
 	 * Checks if there are any members in group or not.
@@ -261,51 +275,139 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 		}
 	}
 
+	/**
+	 * Return List of Groups in domain.
+	 *
+	 * @return List of all domain groups.
+	 * @throws GoogleGroupsIOException When API call fails.
+	 */
+	private Groups getDomainGroups() throws GoogleGroupsIOException {
+		try {
+			log.debug("Listing groups of Domain: {}", domainName);
+			return service.groups().list().setDomain(domainName).execute();
+		} catch (IOException ex) {
+			throw new GoogleGroupsIOException("Something went wrong while getting groups from domain " + domainName + " in Google Groups", ex);
+		}
+	}
+
+	/**
+	 * Insert new group to your domain.
+	 *
+	 * @param group Group to be inserted
+	 * @throws GoogleGroupsIOException When API call fails.
+	 */
+	private void insertGroup(Group group) throws GoogleGroupsIOException {
+		try {
+			service.groups().insert(group).execute();
+			log.debug("Creating group: {}", group.getEmail());
+		} catch (IOException ex) {
+			throw new GoogleGroupsIOException("Something went wrong while inserting group " + group.getEmail() + " to Google Groups", ex);
+		}
+	}
+
+	/**
+	 * Delete Group by mail from your domain.
+	 *
+	 * @param email Email of the Group to delete.
+	 * @throws GoogleGroupsIOException When API call fails.
+	 */
+	private void deleteGroup(String email) throws GoogleGroupsIOException {
+		try {
+			service.groups().delete(email);
+			log.debug("Deleting group: {}", email);
+		} catch (IOException ex) {
+			throw new GoogleGroupsIOException("Something went wrong while deleting group " + email + " from Google Groups", ex);
+		}
+	}
+
+	/**
+	 * Return List of Users in domain.
+	 *
+	 * @return List of all domain users.
+	 * @throws GoogleGroupsIOException When API call fails.
+	 */
+	private Users listUsers() throws GoogleGroupsIOException {
+		try {
+			log.debug("Listing users in Domain: {}", domainName);
+			return service.users().list().setDomain(domainName).execute();
+		} catch (IOException ex) {
+			throw new GoogleGroupsIOException("Something went wrong while getting users from domain " + domainName + " in Google Groups", ex);
+		}
+	}
+
+	/**
+	 * Insert new user to your domain.
+	 *
+	 * @param user User to be created in your domain.
+	 * @throws GoogleGroupsIOException When API call fails.
+	 */
+	private void insertUser(User user) throws GoogleGroupsIOException {
+		try {
+			service.users().insert(user).execute();
+			log.debug("Creating user: {}", user.getPrimaryEmail());
+		} catch (IOException ex) {
+			throw new GoogleGroupsIOException("Something went wrong while inserting user " + user.getPrimaryEmail() + " to Google Groups", ex);
+		}
+	}
+
+	/**
+	 * Delete User from your domain by key (email).
+	 *
+	 * @param userKey Email to delete user by.
+	 * @throws GoogleGroupsIOException When API call fails.
+	 */
+	private void deleteUser(String userKey) throws GoogleGroupsIOException {
+		try {
+			service.users().delete(userKey).execute();
+			log.debug("Deleting user: {}", userKey);
+		} catch (IOException ex) {
+			throw new GoogleGroupsIOException("Something went wrong while deleting user " + userKey + " from Google Groups", ex);
+		}
+	}
+
+	/**
+	 * Return List of groups Members.
+	 *
+	 * @return List of all group Members.
+	 * @throws GoogleGroupsIOException When API call fails.
+	 */
 	private Members getGroupsMembers() throws GoogleGroupsIOException {
 		try {
+			log.debug("Listing members of Group: {}", groupName);
 			return service.members().list(groupName).execute();
 		} catch (IOException ex) {
 			throw new GoogleGroupsIOException("Something went wrong while getting members of group " + groupName + " in Google Groups", ex);
 		}
 	}
 
+	/**
+	 * Insert Member to the group in your domain.
+	 *
+	 * @param member Member to be inserted.
+	 * @throws GoogleGroupsIOException When API call fails.
+	 */
 	private void insertMember(Member member) throws GoogleGroupsIOException {
 		try {
 			service.members().insert(groupName, member).execute();
+			log.debug("Inserting member: {} to group: {}", member.getEmail(), groupName);
 		} catch (IOException ex) {
 			throw new GoogleGroupsIOException("Something went wrong while inserting member " + member.getEmail() + " into group " + groupName + " in Google Groups", ex);
 		}
 	}
 
+	/**
+	 * Delete Member from the group in your domain.
+	 *
+	 * @param memberId Member to be deleted.
+	 * @throws GoogleGroupsIOException  When API call fails.
+	 */
 	private void deleteMember(String memberId) throws GoogleGroupsIOException {
 		try {
 			service.members().delete(groupName, memberId).execute();
+			log.debug("Deleting member: {} from group: {}", memberId, groupName);
 		} catch (IOException ex) {
 			throw new GoogleGroupsIOException("Something went wrong while deleting member with ID " + memberId + " from group " + groupName + " in Google Groups", ex);
 		}
 	}
 
-	public static void main(String[] args) throws IOException, GeneralSecurityException, GoogleGroupsIOException {
-		String filePath = null;
-		String domainFile = "/etc/perun/google_groups-";
-
-		if (args.length > 1) {
-			filePath = args[0];
-			domainFile = domainFile + args[1] + ".properties";
-		} else {
-			throw new IllegalArgumentException("Main class has wrong number of input arguments (less than 2).");
-		}
-
-		if (filePath == null || filePath.isEmpty()) {
-			log.error("File path is empty.");
-			throw new IllegalArgumentException("File path can't be empty.");
-		}
-
-		File inputFile = new File(filePath);
-		GoogleGroupsConnectionImpl connection = new GoogleGroupsConnectionImpl(domainFile);
-		service = connection.getDirectoryService();
-		GoogleGroupsServiceImpl session = new GoogleGroupsServiceImpl();
-		session.domainName = connection.getDomainName();
-		session.compareAndPropagateData(inputFile);
-	}
 }
