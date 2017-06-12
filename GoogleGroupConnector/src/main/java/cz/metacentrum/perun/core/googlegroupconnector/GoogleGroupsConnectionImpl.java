@@ -7,7 +7,6 @@ import com.google.api.client.http.HttpTransport;
 import com.google.api.client.json.jackson2.JacksonFactory;
 import com.google.api.client.json.JsonFactory;
 
-import com.google.api.services.admin.directory.DirectoryScopes;
 import com.google.api.services.admin.directory.Directory;
 
 import java.io.FileInputStream;
@@ -101,10 +100,7 @@ public class GoogleGroupsConnectionImpl implements GoogleGroupsConnection {
 			GoogleGroupsConnectionImpl.SERVICE_ACCOUNT_PKCS12_FILE_PATH = prop.getProperty("service_account_pkcs12_file_path");
 			GoogleGroupsConnectionImpl.JSON_FACTORY = JacksonFactory.getDefaultInstance();
 			GoogleGroupsConnectionImpl.HTTP_TRANSPORT = GoogleNetHttpTransport.newTrustedTransport();
-			GoogleGroupsConnectionImpl.SCOPES = Arrays.asList(DirectoryScopes.ADMIN_DIRECTORY_USER,
-					DirectoryScopes.ADMIN_DIRECTORY_USER_READONLY,
-					DirectoryScopes.ADMIN_DIRECTORY_GROUP,
-					DirectoryScopes.ADMIN_DIRECTORY_GROUP_MEMBER);
+			GoogleGroupsConnectionImpl.SCOPES = Arrays.asList(prop.getProperty("scopes").split(","));
 
 		} catch (IOException ex) {
 			String msg = "Problem with I/O operation while reading google_groups.properties file.";
