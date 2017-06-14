@@ -1,0 +1,60 @@
+<!--
+    You can load another file by e.g.
+     -Dlogback.configurationFile=file:///etc/perun/logback-google-groups.xml
+    and change the directory for log files by e.g.
+     -Dperun.log=/var/log/perun/
+
+    For documentation see https://logback.qos.ch/manual/configuration.html#syntax
+    @author Martin Kuba makub@ics.muni.cz
+    -->
+<configuration packagingData="false" debug="false" scan="false" scanPeriod="30 seconds">
+	<!--
+		packagingData="true" ... in stacktrace shows jar files and their versions
+		debug="true" ... prints which logback.xml file is used during startup
+		scan="true" ... changes to this file are dynamically loaded without restarting the app
+		scanPeriod="30 seconds" ... how often are changes scanned
+	-->
+
+	<contextName>perun-google-groups</contextName>
+
+	<!-- variable defining the directory where log files will be put, takes system property perun.log -->
+	<variable name="LOGDIR" value="${perun.log:-/var/log/perun/}"/>
+
+	<!-- production setting for format of log lines -->
+	<variable name="ENCODER_PATTERN" value="%date %-5level %logger{35} - %msg%n"/>
+
+	<!-- variable defining the max number of rotated files -->
+	<variable name="MAXHISTORY" value="7"/>
+
+	<!-- logging to console -->
+	<appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+		<encoder>
+			<pattern>${ENCODER_PATTERN}</pattern>
+		</encoder>
+	</appender>
+
+	<!-- logging to file perun-google-groups.log rotated daily or when it exceeds 100MB size -->
+	<!--
+	<appender class="ch.qos.logback.core.rolling.RollingFileAppender" name="main">
+		<file>${LOGDIR}perun-google-groups.log</file>
+		<rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+			<fileNamePattern>${LOGDIR}perun-google-groups.log.%d.%i</fileNamePattern>
+			<maxFileSize>100MB</maxFileSize>
+			<maxHistory>${MAXHISTORY}</maxHistory>
+			<totalSizeCap>1GB</totalSizeCap>
+		</rollingPolicy>
+		<encoder>
+			<pattern>${ENCODER_PATTERN}</pattern>
+		</encoder>
+	</appender>
+	-->
+
+	<!-- the main logger and its level -->
+	<root level="warn">
+		<!--<appender-ref ref="main"/>-->
+		<appender-ref ref="STDOUT"/>
+	</root>
+
+	<logger name="cz.metacentrum.perun.core" level="info"/>
+
+</configuration>

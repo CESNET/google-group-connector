@@ -53,9 +53,11 @@ public class GoogleGroupsConnectionImpl implements GoogleGroupsConnection {
 
 	private final static org.slf4j.Logger log = LoggerFactory.getLogger(GoogleGroupsConnectionImpl.class);
 
+	private Properties prop = new Properties();
+
 	public GoogleGroupsConnectionImpl(String domainFile) throws IOException, GeneralSecurityException {
 		GoogleGroupsConnectionImpl.PROPERTIES_PATH = domainFile;
-		this.loadProperties();
+		loadProperties();
 	}
 
 	/**
@@ -66,10 +68,7 @@ public class GoogleGroupsConnectionImpl implements GoogleGroupsConnection {
 	 */
 	@Override
 	public Directory getDirectoryService() {
-		Directory service = new Directory.Builder(HTTP_TRANSPORT, JSON_FACTORY, authorize())
-				.setApplicationName(APPLICATION_NAME).build();
-
-		return service;
+		return new Directory.Builder(HTTP_TRANSPORT, JSON_FACTORY, authorize()).setApplicationName(APPLICATION_NAME).build();
 	}
 
 	/**
@@ -81,11 +80,16 @@ public class GoogleGroupsConnectionImpl implements GoogleGroupsConnection {
 		return USER_EMAIL.substring(USER_EMAIL.indexOf("@") + 1);
 	}
 
+	@Override
+	public Properties getProperties() {
+		return prop;
+	}
+
 	/**
 	 * Loads properties and sets static class variables.
 	 */
 	private void loadProperties() throws IOException, GeneralSecurityException {
-		Properties prop = new Properties();
+
 		InputStream input = null;
 
 		try {
@@ -128,23 +132,20 @@ public class GoogleGroupsConnectionImpl implements GoogleGroupsConnection {
 	 */
 	private static Credential authorize() {
 		try {
-			GoogleCredential credential = new GoogleCredential.Builder()
+			return new GoogleCredential.Builder()
 					.setTransport(HTTP_TRANSPORT)
 					.setJsonFactory(JSON_FACTORY)
 					.setServiceAccountId(SERVICE_ACCOUNT_EMAIL)
 					.setServiceAccountScopes(SCOPES)
 					.setServiceAccountUser(USER_EMAIL)
-					.setServiceAccountPrivateKeyFromP12File(
-							new java.io.File(SERVICE_ACCOUNT_PKCS12_FILE_PATH))
+					.setServiceAccountPrivateKeyFromP12File(new java.io.File(SERVICE_ACCOUNT_PKCS12_FILE_PATH))
 					.build();
-
-			return credential;
 		} catch (IOException ex) {
 			log.error("Problem with I/O operation while building GoogleCredential object in authorize() method.", ex);
 		} catch (GeneralSecurityException ex) {
 			log.error("Problem with security while building GoogleCredential object in authorize() method.", ex);
 		}
-
 		return null;
 	}
+
 }
