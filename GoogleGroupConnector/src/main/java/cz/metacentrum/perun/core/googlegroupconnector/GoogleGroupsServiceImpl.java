@@ -143,6 +143,12 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 					// primary user identifier
 					user.setPrimaryEmail(line[0]);
 
+					// skip group outside own domain !!
+					if (!Objects.equals(user.getPrimaryEmail().substring(user.getPrimaryEmail().indexOf("@")), domainName)) {
+						log.warn("User: {} is not from your domain: {}. Skip it.", user, domainName);
+						continue;
+					}
+
 					UserName name = new UserName();
 					String fullName = "";
 					// set given name
@@ -222,6 +228,13 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 					if (line[1] != null && !line[1].isEmpty()) {
 						group.setName(line[1]);
 					}
+
+					// skip group outside own domain !!
+					if (!Objects.equals(group.getEmail().substring(group.getEmail().indexOf("@")), domainName)) {
+						log.warn("Group: {} is not from your domain: {}. Skip it.", group, domainName);
+						continue;
+					}
+
 					result.add(group);
 
 					if (line[2] != null && !line[2].isEmpty()) {
@@ -276,18 +289,9 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 
 				if (domainUser == null) {
 
-					// give users random passwords needed for creation
-					char[] possibleCharacters = ("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789~`!@#$%^&*()-_=+[{]}\\|;:\'\",<.>/?").toCharArray();
-					String randomStr = RandomStringUtils.random( 40, 0, possibleCharacters.length-1, false, false, possibleCharacters, new SecureRandom());
-					user.setPassword(randomStr);
-
 					// create new user
 					insertUser(user);
 					log.info("User created: {}", user.getPrimaryEmail());
-
-					// FIXME - remove - only for debug
-					Users checkUsers = getDomainUsers(domainName);
-					log.debug("Current users: {}", checkUsers.getUsers());
 
 				} else {
 
@@ -329,15 +333,8 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 
 			// domain is empty, add all Perun users
 			for (User user : users) {
-
-				// give users random passwords needed for creation
-				char[] possibleCharacters = ("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789~`!@#$%^&*()-_=+[{]}\\|;:\'\",<.>/?").toCharArray();
-				String randomStr = RandomStringUtils.random( 40, 0, possibleCharacters.length-1, false, false, possibleCharacters, new SecureRandom());
-				user.setPassword(randomStr);
-
 				insertUser(user);
 				log.info("User created: {}", user.getPrimaryEmail());
-
 			}
 
 		}
@@ -598,6 +595,12 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 	 */
 	private void insertUser(User user) throws GoogleGroupsIOException {
 		try {
+
+			// give users random passwords needed for creation
+			char[] possibleCharacters = ("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789~`!@#$%^&*()-_=+[{]}\\|;:\'\",<.>/?").toCharArray();
+			String randomStr = RandomStringUtils.random( 40, 0, possibleCharacters.length-1, false, false, possibleCharacters, new SecureRandom());
+			user.setPassword(randomStr);
+
 			service.users().insert(user).execute();
 			log.debug("Creating user: {}", user);
 		} catch (IOException ex) {
