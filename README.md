@@ -1,18 +1,20 @@
-# google-group-connector
+# G Suite connector
 
-This repository contains java application, used by [Perun](http://perun.cesnet.cz/web/) to connect to [Google Groups](https://support.google.com/groups/answer/46601?hl=en) and synchronize users from Perun to Google Groups. Sources of the Perun are located in another [repository](https://github.com/CESNET/perun).
+This repository contains java application, used by [Perun](http://perun.cesnet.cz/web/) to connect to [G Suite](https://gsuite.google.com/) service and synchronize users and groups from Perun to your domain in G Suite. 
 
-You can also use this application on it's own. You just need to make necessary setup and pass input file in expected format.
+You can also use this application without Perun. You just need to make necessary setup and pass input file in expected format.
+
+Sources of the Perun are located in own [repository](https://github.com/CESNET/perun).
 
 ## Requirements
 
 * Java >= 1.6
 * Maven >= 3.1.x
-* G-Suite account
+* G suite account
 
 ## Configuration
 
-### Set your G-Suite account
+### Set your G suite account
 
 Firstly, generate your service account email in your Developers Console according to [this guide](https://developers.google.com/identity/protocols/OAuth2ServiceAccount#creatinganaccount).
 
@@ -22,29 +24,75 @@ Thirdly, set your API Scopes according to [this guide](https://developers.google
 
 ### Create necessary files
 
-Properties file is necessary for successful execution of the application. Name your properties file according to your domain name. E.g. if your domain name is **nonexisting.domain.org** then your properties file would be named like this:
+Properties file is necessary for successful execution of the application. Name your properties file according to your domain name. E.g. if your domain name is **domain.org** then your properties file would be named like this:
 
-* `touch /etc/perun/google_groups-nonexisting.domain.org.properties`
+* `touch /etc/perun/google_groups-domain.org.properties`
 
-After creating properties file, add three properties in it: `service_account_email` is an email generated in Developers Console, `user_email` is an email address of your google apps account and `service_account_pkcs12_file_path` is a path to your generated P12 key. It's very important to name your P12 file according to your domain name (e.g. if your domain name is **nonexisting.domain.org**, then your P12 file will be named `client_secret_pkcs12-nonexisting.domain.org.p12` and move it to the folder `/etc/perun/`. Your properties file should look like this:
+After creating properties file, add following properties in it: 
+
+* `service_account_email` is an email generated in Developers Console
+* `user_email` is an email address of your google apps account
+* `service_account_pkcs12_file_path` is a path to your generated P12 key. It's very important to name your P12 file according to your domain name (e.g. if your domain name is **domain.org**, then your P12 file will be named `client_secret_pkcs12-domain.org.p12` and move it to the folder `/etc/perun/`. 
+* `scopes` list of scopes allowed for your service account necessary to perform expected changes
+* `member_identifier` type of identifier you use in input files to identifier user
+
+Your properties file should look like this:
 
 ```bash
 service_account_email=[SERVICE_ACCOUNT_EMAIL]
 user_email=[GOOGLE_APPS_ACCOUNT_EMAIL]
 service_account_pkcs12_file_path=/etc/perun/name_of_your_p12_file
+scopes=https://www.googleapis.com/auth/admin.directory.group,https://www.googleapis.com/auth/admin.directory.orgunit,https://www.googleapis.com/auth/admin.directory.user,https://www.googleapis.com/auth/groups,https://www.googleapis.com/auth/userinfo.email
+member_identifier=id
 ```
 
-Create your input file, that you will pass to the main class as its argument. First line in the file has to contain list of all group email addresses, separated by single whitespace. All other lines in the file have to contain group email address with its members' ids, all separated by single whitespace too. Something like this:
+## Usage
+
+Based on desired action, you must prepare CSV file splitted by `;` containing either domain users or groups and their members. You will then pass it to the main class as its argument. 
+
+#### Users.csv example
+
+Format is: `primaryMail;givenName;FamilyName;suspended flag`
 
 ```bash
-groupName1@nonexisting.domain.org groupName2@nonexisting.domain.org groupName3@nonexisting.domain.org
-groupName1@nonexisting.domain.org member1ID member2ID
-groupName2@nonexisting.domain.org member1ID
-groupName3@nonexisting.domain.org member2ID member3ID
+user1@domain.org;User;One;
+user2@domain.org;User;Two;
+user3@domain.org;User;Three;suspended
+user4@domain.org;User;Four;
 ```
 
-## Example
+New users will have random password generated, so different type of authentication must be provided for your domain - e.g. using Shibboleth IdP.
+You can mark users as suspended to suspend them in G Suite. Existing user name is updated if changed. Domain users missing in a file are deleted!
 
-Main class of the application needs input arguments for successful execution. First argument should be path to file containing all groups and its members, as described above. Second argument should be name of the domain that you work with. You need to run something like this (with JAVA_HOME explicitely set):
+#### Groups.csv example
 
-`java -jar google-group-connector/GoogleGroupConnector-1.0-SNAPSHOT.jar "PATH_TO_FIRST_FILE" "nonexisting.domain.org"`
+Format is: `email;name;members_identifiers`
+
+```bash
+group1@domain.org;Group One;user1@domain.org,user2@domain.org,user3@domain.org
+group2@domain.org;Group Two;
+group3@domain.org;Group Three;user4@domain.org
+```
+
+Groups are identified by their mail. Name of Group is updated if changed. Group members are updated if changed.
+Based on properties file config Member identifier is either primaryMail or ID.
+
+For managing users and groups together using 'email' as Member identifier is suggested, since this connector doesn't retrieve User IDs back from G Suite.
+For managing only groups (filled with public google accounts outside your domain) you can use IDs as provided by their Google Identity registered in Perun.
+
+#### Execution
+
+Main class of the application needs input arguments for successful execution. 
+First argument is your domain name. 
+Second argument is type of action: "users" or "groups".
+Third argument is path to CSV file (users or groups - depending on action)
+
+```
+java -jar ./GoogleGroupConnector-2.0.0.jar DOMAIN ACTION PATH_TO_CSV_FILE
+```
+
+By default, application logs to console. You can change default logging by passing own logback configuration.
+
+```$xslt
+java -Dlogback.configurationFile=file:///etc/perun/logback-google-groups.xml -jar ./GoogleGroupConnector-2.0.0.jar DOMAIN ACTION PATH_TO_CSV_FILE
+```

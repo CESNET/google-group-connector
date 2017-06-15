@@ -2,10 +2,13 @@ package cz.metacentrum.perun.core.googlegroupconnector;
 
 import com.google.api.services.admin.directory.Directory;
 
+import java.util.Properties;
+
 /**
- * GoogleGroupsConnection handles connection to Google Groups account.
+ * Handles connection to G suite account and provides configuration of your domain.
  *
  * @author Sona Mastrakova <sona.mastrakova@gmail.com>
+ * @author Pavel Zlamal <zlamal@cesnet.cz>
  */
 public interface GoogleGroupsConnection {
 
@@ -14,5 +17,12 @@ public interface GoogleGroupsConnection {
 	 *
 	 * @return Directory service object that is ready to make requests.
 	 */
-	public Directory getDirectoryService();
+	Directory getDirectoryService();
+
+	/**
+	 * Return configuration properties for G suite domain.
+	 *
+	 * @return Configuration properties for G suite domain
+	 */
+	Properties getProperties();
 }
