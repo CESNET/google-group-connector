@@ -144,7 +144,7 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 					user.setPrimaryEmail(line[0]);
 
 					// skip group outside own domain !!
-					if (!Objects.equals(user.getPrimaryEmail().substring(user.getPrimaryEmail().indexOf("@")), domainName)) {
+					if (!Objects.equals(user.getPrimaryEmail().substring(user.getPrimaryEmail().indexOf("@")+1), domainName)) {
 						log.warn("User: {} is not from your domain: {}. Skip it.", user, domainName);
 						continue;
 					}
@@ -230,7 +230,7 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 					}
 
 					// skip group outside own domain !!
-					if (!Objects.equals(group.getEmail().substring(group.getEmail().indexOf("@")), domainName)) {
+					if (!Objects.equals(group.getEmail().substring(group.getEmail().indexOf("@")+1), domainName)) {
 						log.warn("Group: {} is not from your domain: {}. Skip it.", group, domainName);
 						continue;
 					}
