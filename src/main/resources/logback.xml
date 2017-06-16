@@ -55,6 +55,6 @@
 		<appender-ref ref="STDOUT"/>
 	</root>
 
-	<logger name="cz.metacentrum.perun.core" level="info"/>
+	<logger name="cz.metacentrum.perun.googlegroupconnector" level="info"/>
 
 </configuration>

@@ -1,7 +1,7 @@
-package cz.metacentrum.perun.core.googlegroupconnector;
+package cz.metacentrum.perun.googlegroupconnector;
 
 import com.google.api.services.admin.directory.model.UserName;
-import cz.metacentrum.perun.core.googlegroupconnector.exceptions.GoogleGroupsIOException;
+import cz.metacentrum.perun.googlegroupconnector.exceptions.GoogleGroupsIOException;
 import com.google.api.services.admin.directory.Directory;
 import com.google.api.services.admin.directory.model.Group;
 import com.google.api.services.admin.directory.model.Groups;
