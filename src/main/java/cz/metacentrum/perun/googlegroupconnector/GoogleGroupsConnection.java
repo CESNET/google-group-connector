@@ -1,4 +1,4 @@
-package cz.metacentrum.perun.core.googlegroupconnector;
+package cz.metacentrum.perun.googlegroupconnector;
 
 import com.google.api.services.admin.directory.Directory;
 

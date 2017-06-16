@@ -1,4 +1,4 @@
-package cz.metacentrum.perun.core.googlegroupconnector;
+package cz.metacentrum.perun.googlegroupconnector;
 
 import com.google.api.client.auth.oauth2.Credential;
 import com.google.api.client.googleapis.auth.oauth2.GoogleCredential;

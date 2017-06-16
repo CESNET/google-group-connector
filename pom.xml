@@ -12,7 +12,7 @@
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<maven.compiler.source>1.8</maven.compiler.source>
 		<maven.compiler.target>1.8</maven.compiler.target>
-		<start-class>cz.metacentrum.perun.core.googlegroupconnector.GoogleGroupsServiceImpl</start-class>
+		<start-class>cz.metacentrum.perun.googlegroupconnector.GoogleGroupsServiceImpl</start-class>
 	</properties>
 
 	<build>

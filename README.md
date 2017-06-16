@@ -1,5 +1,7 @@
 # G Suite connector
 
+[![Build Status](https://travis-ci.org/CESNET/google-group-connector.svg?branch=master)](https://travis-ci.org/CESNET/google-group-connector)
+
 This repository contains java application, used by [Perun](http://perun.cesnet.cz/web/) to connect to [G Suite](https://gsuite.google.com/) service and synchronize users and groups from Perun to your domain in G Suite. 
 
 You can also use this application without Perun. You just need to make necessary setup and pass input file in expected format.

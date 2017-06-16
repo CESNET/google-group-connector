@@ -1,4 +1,4 @@
-package cz.metacentrum.perun.core.googlegroupconnector.exceptions;
+package cz.metacentrum.perun.googlegroupconnector.exceptions;
 
 /**
  *
