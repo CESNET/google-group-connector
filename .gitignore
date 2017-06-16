@@ -51,6 +51,7 @@ nb-configuration.xml
 # LINUX ignore #
 
 .*
+!.travis.yml
 !.gitignore
 !.gitattributes
 *~
