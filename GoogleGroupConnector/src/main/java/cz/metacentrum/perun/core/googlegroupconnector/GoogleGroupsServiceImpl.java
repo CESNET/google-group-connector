@@ -323,8 +323,18 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 				}
 
 				if (!isInPerun) {
-					deleteUser(userInDomain.getPrimaryEmail());
-					log.info("User deleted: {}", userInDomain.getPrimaryEmail());
+
+					if (Boolean.getBoolean(properties.getProperty("allow_delete", "false"))) {
+						// deleting domain users is allowed
+						deleteUser(userInDomain.getPrimaryEmail());
+						log.info("User deleted: {}", userInDomain.getPrimaryEmail());
+					} else {
+						// deletion of domain users is disabled - suspend instead
+						userInDomain.setSuspended(true);
+						updateUser(userInDomain.getPrimaryEmail(), userInDomain);
+						log.info("User suspended: {}", userInDomain.getPrimaryEmail());
+					}
+
 				}
 
 			}
@@ -519,7 +529,16 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 	private Groups getDomainGroups(String domainName) throws GoogleGroupsIOException {
 		try {
 			log.debug("Listing Groups from Domain: {}", domainName);
-			return service.groups().list().setDomain(domainName).execute();
+			Groups groups = service.groups().list().setDomain(domainName).execute();
+			// fill list of users by next page
+			boolean next = (groups.getNextPageToken() != null);
+			while (next) {
+				Groups groups2 = service.groups().list().setDomain(domainName).setPageToken(groups.getNextPageToken()).execute();
+				groups.getGroups().addAll(groups2.getGroups());
+				groups.setNextPageToken(groups2.getNextPageToken());
+				next = (groups2.getNextPageToken() != null);
+			}
+			return groups;
 		} catch (IOException ex) {
 			throw new GoogleGroupsIOException("Something went wrong while getting groups from domain " + domainName + " in Google Groups", ex);
 		}
@@ -580,7 +599,7 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 	 */
 	private Users getDomainUsers(String domainName) throws GoogleGroupsIOException {
 		try {
-
+			log.debug("Listing Users from Domain: {}", domainName);
 			Users users = service.users().list().setDomain(domainName).setMaxResults(500).setOrderBy("email").execute();
 			// fill list of users by next page
 			boolean next = (users.getNextPageToken() != null);
@@ -659,7 +678,16 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 	private Members getGroupsMembers(String groupName) throws GoogleGroupsIOException {
 		try {
 			log.debug("Listing Members of Group: {}", groupName);
-			return service.members().list(groupName).execute();
+			Members members = service.members().list(groupName).execute();
+			// fill list of members by next page
+			boolean next = (members.getNextPageToken() != null);
+			while (next) {
+				Members members2 = service.members().list(groupName).setPageToken(members.getNextPageToken()).execute();
+				members.getMembers().addAll(members2.getMembers());
+				members.setNextPageToken(members2.getNextPageToken());
+				next = (members2.getNextPageToken() != null);
+			}
+			return members;
 		} catch (IOException ex) {
 			throw new GoogleGroupsIOException("Something went wrong while getting members of group " + groupName + " in Google Groups", ex);
 		}
