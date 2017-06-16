@@ -35,6 +35,7 @@ After creating properties file, add following properties in it:
 * `service_account_pkcs12_file_path` is a path to your generated P12 key. It's very important to name your P12 file according to your domain name (e.g. if your domain name is **domain.org**, then your P12 file will be named `client_secret_pkcs12-domain.org.p12` and move it to the folder `/etc/perun/`. 
 * `scopes` list of scopes allowed for your service account necessary to perform expected changes
 * `member_identifier` type of identifier you use in input files to identifier user
+* `allow_delete` true/false value determine, if users missing in input file are deleted from domain or just suspended
 
 Your properties file should look like this:
 
@@ -44,6 +45,7 @@ user_email=[GOOGLE_APPS_ACCOUNT_EMAIL]
 service_account_pkcs12_file_path=/etc/perun/name_of_your_p12_file
 scopes=https://www.googleapis.com/auth/admin.directory.group,https://www.googleapis.com/auth/admin.directory.orgunit,https://www.googleapis.com/auth/admin.directory.user,https://www.googleapis.com/auth/groups,https://www.googleapis.com/auth/userinfo.email
 member_identifier=id
+allow_delete=false
 ```
 
 ## Usage
@@ -62,7 +64,9 @@ user4@domain.org;User;Four;
 ```
 
 New users will have random password generated, so different type of authentication must be provided for your domain - e.g. using Shibboleth IdP.
-You can mark users as suspended to suspend them in G Suite. Existing user name is updated if changed. Domain users missing in a file are deleted!
+You can mark users as suspended to suspend them in G Suite. Existing user name is updated if changed. 
+
+Domain users missing in input file are suspended by default, but you can allow deletion by setting `allow_delete=true` in properties file.
 
 #### Groups.csv example
 
