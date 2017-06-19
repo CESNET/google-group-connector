@@ -45,6 +45,15 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 	private Properties properties;
 	private Map<String,List<String>> groupsMembers = new HashMap<>();
 
+	private static int usersInserted = 0;
+	private static int usersUpdated = 0;
+	private static int usersSuspended = 0;
+	private static int usersDeleted = 0;
+	private static int groupsInserted = 0;
+	private static int groupsUpdated = 0;
+	private static int groupsDeleted = 0;
+	private static int groupsUpdatedMembers = 0;
+
 	/**
 	 * Main method starting (de)provisioning of G Suite on your domain.
 	 *
@@ -63,56 +72,72 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 	 */
 	public static void main(String[] args) throws IOException, GeneralSecurityException, GoogleGroupsIOException {
 
-		String domainFile = "/etc/perun/google_groups-";
-		String action = null;
-		String inputFilePath = null;
+		try {
 
-		if (args.length > 2) {
-			domainFile = domainFile + args[0] + ".properties";
-			action = args[1];
-			inputFilePath = args[2];
-		} else {
-			throw new IllegalArgumentException("Wrong number of input arguments (less than 3).");
-		}
+			String domainFile = "/etc/perun/google_groups-";
+			String action = null;
+			String inputFilePath = null;
 
-		if (inputFilePath == null || inputFilePath.isEmpty()) {
-			log.error("Input file path is empty.");
-			throw new IllegalArgumentException("File path can't be empty.");
-		}
+			if (args.length > 2) {
+				domainFile = domainFile + args[0] + ".properties";
+				action = args[1];
+				inputFilePath = args[2];
+			} else {
+				throw new IllegalArgumentException("Wrong number of input arguments (less than 3).");
+			}
 
-		File inputFile = new File(inputFilePath);
+			if (inputFilePath == null || inputFilePath.isEmpty()) {
+				log.error("Input file path is empty.");
+				throw new IllegalArgumentException("File path can't be empty.");
+			}
 
-		GoogleGroupsConnectionImpl connection = new GoogleGroupsConnectionImpl(domainFile);
-		service = connection.getDirectoryService();
+			File inputFile = new File(inputFilePath);
 
-		GoogleGroupsServiceImpl session = new GoogleGroupsServiceImpl();
-		session.domainName = connection.getDomainName();
-		session.properties = connection.getProperties();
+			GoogleGroupsConnectionImpl connection = new GoogleGroupsConnectionImpl(domainFile);
+			service = connection.getDirectoryService();
 
-		switch(action) {
-			case "users":
-				List<User> users = session.parseUserFile(inputFile);
-				log.info("Users file parsed...");
-				if (users == null || users.isEmpty()) {
-					log.warn("Processing of users skipped.");
-				} else {
-					session.processUsers(users);
-					log.info("Processing of users done.");
-				}
-				return;
-			case "groups":
-				List<Group> groups = session.parseGroupsFile(inputFile);
-				log.info("Groups file parsed...");
-				if (groups == null || groups.isEmpty()) {
-					log.warn("Processing of groups skipped.");
-				} else {
-					session.processGroups(groups);
-					log.info("Processing of groups done.");
-				}
-				return;
-			default:
-				log.error("Invalid action: {}. Please use: \"users\" or \"groups\" as action.", action);
-				throw new IllegalArgumentException("Invalid action: "+action+". Please use: \"users\" or \"groups\" as action.");
+			GoogleGroupsServiceImpl session = new GoogleGroupsServiceImpl();
+			session.domainName = connection.getDomainName();
+			session.properties = connection.getProperties();
+
+			switch (action) {
+				case "users":
+					List<User> users = session.parseUserFile(inputFile);
+					log.info("Users file parsed...");
+					if (users == null || users.isEmpty()) {
+						log.warn("Processing of users skipped.");
+					} else {
+						session.processUsers(users);
+						log.info("Processing of users done.");
+					}
+					System.out.println("Users inserted: "+usersInserted);
+					System.out.println("Users updated: "+usersUpdated);
+					System.out.println("Users suspended: "+usersSuspended);
+					System.out.println("Users deleted: "+usersDeleted);
+					return;
+				case "groups":
+					List<Group> groups = session.parseGroupsFile(inputFile);
+					log.info("Groups file parsed...");
+					if (groups == null || groups.isEmpty()) {
+						log.warn("Processing of groups skipped.");
+					} else {
+						session.processGroups(groups);
+						log.info("Processing of groups done.");
+					}
+					System.out.println("Groups inserted: "+groupsInserted);
+					System.out.println("Groups updated: "+groupsUpdated);
+					System.out.println("Groups with updated members:"+groupsUpdatedMembers);
+					System.out.println("Groups deleted: "+groupsDeleted);
+					return;
+				default:
+					log.error("Invalid action: {}. Please use: \"users\" or \"groups\" as action.", action);
+					throw new IllegalArgumentException("Invalid action: " + action + ". Please use: \"users\" or \"groups\" as action.");
+			}
+
+		} catch (Throwable ex) {
+			// make sure java ends with non-zero exit code on fail.
+			System.out.println(ex.getClass().getSimpleName() + ": " + ex.getMessage());
+			System.exit(1);
 		}
 
 	}
@@ -292,6 +317,7 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 					// create new user
 					insertUser(user);
 					log.info("User created: {}", user.getPrimaryEmail());
+					usersInserted++;
 
 				} else {
 
@@ -302,11 +328,12 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 
 						updateUser(user.getPrimaryEmail(), user);
 						log.info("User updated: {}", user.getPrimaryEmail());
+						usersUpdated++;
+						if (user.getSuspended()) usersSuspended++;
 
 					} else {
 						log.info("User skipped: {}", user.getPrimaryEmail());
 					}
-
 
 				}
 
@@ -328,11 +355,13 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 						// deleting domain users is allowed
 						deleteUser(userInDomain.getPrimaryEmail());
 						log.info("User deleted: {}", userInDomain.getPrimaryEmail());
+						usersDeleted++;
 					} else {
 						// deletion of domain users is disabled - suspend instead
 						userInDomain.setSuspended(true);
 						updateUser(userInDomain.getPrimaryEmail(), userInDomain);
 						log.info("User suspended: {}", userInDomain.getPrimaryEmail());
+						usersSuspended++;
 					}
 
 				}
@@ -345,6 +374,7 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 			for (User user : users) {
 				insertUser(user);
 				log.info("User created: {}", user.getPrimaryEmail());
+				usersInserted++;
 			}
 
 		}
@@ -352,7 +382,7 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 	}
 
 	@Override
-	public void processGroups(List<Group> groups) throws GoogleGroupsIOException {
+	public void processGroups(List<Group> groups) throws GoogleGroupsIOException, InterruptedException {
 
 		List<Group> domainGroups = new ArrayList<>();
 		Groups dg = getDomainGroups(domainName);
@@ -375,6 +405,12 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 					// not in domain - create group
 					insertGroup(group);
 					log.info("Group created: {}", group.getEmail());
+					groupsInserted++;
+
+					// FIXME - We must wait before asking for members of newly created groups
+					Thread.sleep(2000);
+					// handle group members
+					processGroupMembers(group);
 
 				} else {
 
@@ -383,15 +419,17 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 
 						updateGroup(domainGroup.getEmail(), group);
 						log.info("Group updated: {}", group.getEmail());
+						groupsUpdated++;
 
 					} else {
 						log.info("Group skipped: {}", group.getEmail());
 					}
 
-				}
+					// handle group members
+					boolean changed = processGroupMembers(group);
+					if (changed) groupsUpdatedMembers++;
 
-				// handle group members
-				processGroupMembers(group);
+				}
 
 			}
 
@@ -408,6 +446,7 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 				if (!isInPerun) {
 					deleteGroup(groupInDomain.getEmail());
 					log.info("Group deleted: {}", groupInDomain.getEmail());
+					groupsDeleted++;
 				}
 
 			}
@@ -419,6 +458,9 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 
 				insertGroup(group);
 				log.info("Group created: {}", group.getEmail());
+				groupsInserted++;
+				// FIXME - We must wait before asking for members of newly created groups
+				Thread.sleep(2000);
 				processGroupMembers(group);
 
 			}
@@ -428,7 +470,9 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 	}
 
 	@Override
-	public void processGroupMembers(Group group) throws GoogleGroupsIOException {
+	public boolean processGroupMembers(Group group) throws GoogleGroupsIOException {
+
+		boolean changed = false;
 
 		// check, what kind of user/member identifier is used in groups file (by config)
 		String memberIdType = properties.getProperty("member_identifier", "id");
@@ -470,6 +514,7 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 						insertMember(group.getEmail(), member);
 						log.info("Member: {} inserted to Group: {}", member.getEmail(), group.getEmail());
 					}
+					changed = true;
 
 				} else {
 
@@ -494,6 +539,7 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 				if (!isInPerun) {
 					deleteMember(group.getEmail(), domainMemberId);
 					log.info("Member: {} deleted from Group: {}", domainMemberId, group.getEmail());
+					changed = true;
 				}
 
 			}
@@ -513,10 +559,13 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 					insertMember(group.getEmail(), member);
 					log.info("Member: {} inserted to Group: {}", member.getEmail(), group.getEmail());
 				}
+				changed = true;
 
 			}
 
 		}
+
+		return changed;
 
 	}
 

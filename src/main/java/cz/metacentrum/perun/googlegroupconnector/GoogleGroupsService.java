@@ -51,7 +51,7 @@ public interface GoogleGroupsService {
 	 * @throws GoogleGroupsIOException when IOException is thrown while
 	 * inserting/getting/deleting objects into/from G Suite.
 	 */
-	void processGroups(List<Group> groups) throws GoogleGroupsIOException;
+	void processGroups(List<Group> groups) throws GoogleGroupsIOException, InterruptedException;
 
 	/**
 	 * Propagates changes in groups membership from Perun to G Suite domain.
@@ -59,7 +59,8 @@ public interface GoogleGroupsService {
 	 * @param group Group to update members for
 	 * @throws GoogleGroupsIOException when IOException is thrown while
 	 * inserting/getting/deleting objects into/from G Suite.
+	 * @return TRUE = group members changed / group members unchanged
 	 */
-	void processGroupMembers(Group group) throws GoogleGroupsIOException;
+	boolean processGroupMembers(Group group) throws GoogleGroupsIOException;
 
 }
