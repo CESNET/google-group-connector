@@ -358,10 +358,12 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 						usersDeleted++;
 					} else {
 						// deletion of domain users is disabled - suspend instead
-						userInDomain.setSuspended(true);
-						updateUser(userInDomain.getPrimaryEmail(), userInDomain);
-						log.info("User suspended: {}", userInDomain.getPrimaryEmail());
-						usersSuspended++;
+						if (!userInDomain.getSuspended()) {
+							userInDomain.setSuspended(true);
+							updateUser(userInDomain.getPrimaryEmail(), userInDomain);
+							log.info("User suspended: {}", userInDomain.getPrimaryEmail());
+							usersSuspended++;
+						}
 					}
 
 				}
