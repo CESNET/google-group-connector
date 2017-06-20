@@ -417,6 +417,15 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 				} else {
 
 					// already in domain - update group name
+
+					// normalize group names - empty strings to nulls
+					if (domainGroup.getName() != null && domainGroup.getName().isEmpty()) {
+						domainGroup.setName(null);
+					}
+					if (group.getName() != null && group.getName().isEmpty()) {
+						group.setName(null);
+					}
+
 					if (!Objects.equals(domainGroup.getName(), group.getName())) {
 
 						updateGroup(domainGroup.getEmail(), group);
@@ -754,7 +763,14 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 	private void insertMember(String groupName, Member member) throws GoogleGroupsIOException {
 		try {
 			service.members().insert(groupName, member).execute();
-			log.debug("Inserting member: {} to group: {}", member.getEmail(), groupName);
+			String memberIdType = properties.getProperty("member_identifier", "id");
+
+			if (Objects.equals("id", memberIdType)) {
+				log.debug("Inserting member: {} to group: {}", member.getId(), groupName);
+			} else {
+				log.debug("Inserting member: {} to group: {}", member.getEmail(), groupName);
+			}
+
 		} catch (IOException ex) {
 			throw new GoogleGroupsIOException("Something went wrong while inserting member " + member.getEmail() + " into group " + groupName + " in Google Groups", ex);
 		}
