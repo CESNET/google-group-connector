@@ -315,9 +315,13 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 				if (domainUser == null) {
 
 					// create new user
-					insertUser(user);
-					log.info("User created: {}", user.getPrimaryEmail());
-					usersInserted++;
+					if (!user.getSuspended()) {
+						insertUser(user);
+						log.info("User created: {}", user.getPrimaryEmail());
+						usersInserted++;
+					} else {
+						log.warn("User not created - is in suspended state: {}", user.getPrimaryEmail());
+					}
 
 				} else {
 
@@ -374,9 +378,13 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 
 			// domain is empty, add all Perun users
 			for (User user : users) {
-				insertUser(user);
-				log.info("User created: {}", user.getPrimaryEmail());
-				usersInserted++;
+				if (!user.getSuspended()) {
+					insertUser(user);
+					log.info("User created: {}", user.getPrimaryEmail());
+					usersInserted++;
+				} else {
+					log.warn("User not created - is in suspended state: {}", user.getPrimaryEmail());
+				}
 			}
 
 		}
