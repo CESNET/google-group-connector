@@ -1006,7 +1006,7 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
                             .execute();
                 } catch (IOException ex) {
                     throw new GoogleGroupsIOException("Something went wrong while creating new permission: "
-                            + newOrganizerPermission.getId(),ex);
+                            + newOrganizerPermission.getId(), ex);
                 }
                 teamDriveUsersAdded++;
             }
@@ -1081,7 +1081,7 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
      * Update existing team drive.
      *
      * @param driveKey id of drive, which has to be updated.
-     * @param td team drive with updated properties.
+     * @param td       team drive with updated properties.
      * @throws GoogleGroupsIOException When API call fails.
      */
     private void updateTeamDrive(String driveKey, TeamDrive td) throws GoogleGroupsIOException {

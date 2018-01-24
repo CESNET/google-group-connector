@@ -14,25 +14,25 @@ import java.util.Properties;
  */
 public interface GoogleGroupsConnection {
 
-	/**
-	 * Build and returns an authorized Directory service object.
-	 *
-	 * @return Directory service object that is ready to make requests.
-	 */
-	Directory getDirectoryService();
+    /**
+     * Build and returns an authorized Directory service object.
+     *
+     * @return Directory service object that is ready to make requests.
+     */
+    Directory getDirectoryService();
 
-	/**
-	 * Return configuration properties for G suite domain.
-	 *
-	 * @return Configuration properties for G suite domain
-	 */
-	Properties getProperties();
+    /**
+     * Return configuration properties for G suite domain.
+     *
+     * @return Configuration properties for G suite domain
+     */
+    Properties getProperties();
 
-	/**
-	 * Build and return an authorized Drive client service.
-	 *
-	 * @return an authorized Drive client service
-	 * @throws IOException
-	 */
-	Drive getDriveService() throws IOException;
+    /**
+     * Build and return an authorized Drive client service.
+     *
+     * @return an authorized Drive client service
+     * @throws IOException
+     */
+    Drive getDriveService() throws IOException;
 }
