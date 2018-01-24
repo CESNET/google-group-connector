@@ -12,7 +12,6 @@ import com.google.api.services.admin.directory.model.Member;
 import com.google.api.services.admin.directory.model.Members;
 import com.google.api.services.admin.directory.model.User;
 import com.google.api.services.admin.directory.model.Users;
-
 import com.google.api.services.drive.model.TeamDriveList;
 import com.google.api.services.drive.model.TeamDrive;
 import com.opencsv.CSVReader;
@@ -30,7 +29,7 @@ import org.slf4j.LoggerFactory;
 
 /**
  * GoogleGroupsServiceImpl is an implementation of GoogleGroupsService interface.
- * <p>
+ *
  * This class calls GoogleGroupsConnectionImpl to prepare connection to Google
  * Groups via API and then handles propagation of changes from Perun to Google
  * Groups (insert/delete entries);
