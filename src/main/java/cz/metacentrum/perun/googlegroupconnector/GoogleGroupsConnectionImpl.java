@@ -12,12 +12,15 @@ import com.google.api.services.admin.directory.Directory;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+
 import java.security.GeneralSecurityException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
 
+import com.google.api.services.drive.Drive;
 import org.slf4j.LoggerFactory;
+
 
 /**
  * GoogleGroupsConnectionImpl is an implementation of GoogleGroupsConnection
@@ -147,5 +150,97 @@ public class GoogleGroupsConnectionImpl implements GoogleGroupsConnection {
 		}
 		return null;
 	}
+
+
+
+
+
+
+	/**
+	 * Creates an authorized Credential object.
+	 * @return an authorized Credential object.
+	 * @throws IOException
+	 */
+	/*
+	New way of google authorization, for groups managements and for team drives management too.
+	Eventually it will be necesseray to remake authorization. New authorization needs to register aplication
+	or generate JSON file from developer console.
+
+	import com.google.api.client.extensions.java6.auth.oauth2.AuthorizationCodeInstalledApp;
+	import com.google.api.client.extensions.jetty.auth.oauth2.LocalServerReceiver;
+	import com.google.api.client.googleapis.auth.oauth2.GoogleAuthorizationCodeFlow;
+	import com.google.api.client.googleapis.auth.oauth2.GoogleClientSecrets;
+
+	import com.google.api.client.util.store.FileDataStoreFactory;
+
+	import java.io.InputStreamReader;
+	- needed imports
+
+		<dependency>
+			<groupId>com.google.oauth-client</groupId>
+			<artifactId>google-oauth-client-jetty</artifactId>
+			<version>1.11.0-beta</version>
+		</dependency>
+		- needed dependency to pom.xml for import com.google.api.client.extensions.*
+
+		<dependency>
+			<groupId>com.google.oauth-client</groupId>
+			<artifactId>google-oauth-client</artifactId>
+			<version>1.22.0</version>
+		</dependency>
+		- needed dependency to pom.xml for import com.google.api.client.googleapis.auth.ouath2
+
+
+
+	private static final java.io.File DATA_STORE_DIR = new java.io.File(
+		System.getProperty("user.home"), "/etc/perun/google_groups-einfra.cesnet.cz.properties.");
+
+	// Global instance of the {@link FileDataStoreFactory}.
+	private static FileDataStoreFactory DATA_STORE_FACTORY;
+	-needed attributes for store credentials:
+
+	static {
+		try {
+			DATA_STORE_FACTORY = new FileDataStoreFactory(DATA_STORE_DIR);
+		} catch (Throwable t) {
+			log.error("Problem with initialization of DATA_STORE_FACTORY", t);
+		}
+	}
+
+
+	//class representing new google authorization
+	private static Credential newGoogleAuthorize() throws IOException {
+		// Load client secrets.
+		InputStream in =
+				GoogleGroupsConnectionImpl.class.getResourceAsStream("/client_secret.json");
+		GoogleClientSecrets clientSecrets = GoogleClientSecrets.load(JSON_FACTORY, new InputStreamReader(in));
+
+		// Build flow and trigger user authorization request.
+		try {
+			GoogleAuthorizationCodeFlow flow =
+					new GoogleAuthorizationCodeFlow.Builder(
+							HTTP_TRANSPORT, JSON_FACTORY, clientSecrets, SCOPES)
+							.setDataStoreFactory(DATA_STORE_FACTORY)
+							.setAccessType("offline")
+							.build();
+			Credential credential = new AuthorizationCodeInstalledApp(flow, new LocalServerReceiver()).authorize("perun@einfra.cesnet.cz");
+			System.out.println(
+					"Credentials saved to " + DATA_STORE_DIR.getAbsolutePath());
+			return credential;
+		} catch (Exception ex) {
+			log.error("Problem with authorization",ex);
+		}
+		return null;
+	}*/
+
+	@Override
+	public Drive getDriveService() throws IOException {
+		Credential credential = authorize();
+		return new Drive.Builder(
+				HTTP_TRANSPORT, JSON_FACTORY, credential)
+				.setApplicationName(APPLICATION_NAME)
+				.build();
+	}
+
 
 }
