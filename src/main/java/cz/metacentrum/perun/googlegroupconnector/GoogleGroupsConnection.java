@@ -1,7 +1,9 @@
 package cz.metacentrum.perun.googlegroupconnector;
 
 import com.google.api.services.admin.directory.Directory;
+import com.google.api.services.drive.Drive;
 
+import java.io.IOException;
 import java.util.Properties;
 
 /**
@@ -25,4 +27,12 @@ public interface GoogleGroupsConnection {
 	 * @return Configuration properties for G suite domain
 	 */
 	Properties getProperties();
+
+	/**
+	 * Build and return an authorized Drive client service.
+	 *
+	 * @return an authorized Drive client service
+	 * @throws IOException
+	 */
+	Drive getDriveService() throws IOException;
 }
