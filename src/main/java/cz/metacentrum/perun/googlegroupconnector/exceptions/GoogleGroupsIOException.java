@@ -1,7 +1,6 @@
 package cz.metacentrum.perun.googlegroupconnector.exceptions;
 
 /**
- *
  * @author Sona Mastrakova <sona.mastrakova@gmail.com>
  */
 public class GoogleGroupsIOException extends Exception {

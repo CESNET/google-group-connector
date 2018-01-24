@@ -17,7 +17,7 @@ public interface GoogleGroupsService {
 	/**
 	 * Parse input file to list of Users of G Suite domain.
 	 * Format is:
-	 *
+	 * <p>
 	 * primaryMail;givenName;familyName;fullName
 	 *
 	 * @param usersFile CSV input file
@@ -28,7 +28,7 @@ public interface GoogleGroupsService {
 	/**
 	 * Parse input file to list of Group of G Suite domain.
 	 * Format is:
-	 *
+	 * <p>
 	 * identifier(mail);displayName;list,of,member,identifiers,split,by,commas
 	 *
 	 * @param groupsFile CSV input file
@@ -39,7 +39,7 @@ public interface GoogleGroupsService {
 	/**
 	 * Parse input file to pair of TeamDrive and list of Users who belong to team of G Suite domain.
 	 * Format is:
-	 *
+	 * <p>
 	 * identifier of TeamDrive(name);mails of team members split by commas
 	 *
 	 * @param teamDriveFile CSV input file
@@ -52,7 +52,7 @@ public interface GoogleGroupsService {
 	 *
 	 * @param users List of Users from Perun
 	 * @throws GoogleGroupsIOException when IOException is thrown while
-	 * inserting/getting/deleting objects into/from G Suite.
+	 *                                 inserting/getting/deleting objects into/from G Suite.
 	 */
 
 	void processUsers(List<User> users) throws GoogleGroupsIOException;
@@ -62,7 +62,7 @@ public interface GoogleGroupsService {
 	 *
 	 * @param groups List of Groups from Perun
 	 * @throws GoogleGroupsIOException when IOException is thrown while
-	 * inserting/getting/deleting objects into/from G Suite.
+	 *                                 inserting/getting/deleting objects into/from G Suite.
 	 */
 	void processGroups(List<Group> groups) throws GoogleGroupsIOException, InterruptedException;
 
@@ -70,9 +70,9 @@ public interface GoogleGroupsService {
 	 * Propagates changes in groups membership from Perun to G Suite domain.
 	 *
 	 * @param group Group to update members for
-	 * @throws GoogleGroupsIOException when IOException is thrown while
-	 * inserting/getting/deleting objects into/from G Suite.
 	 * @return TRUE = group members changed / group members unchanged
+	 * @throws GoogleGroupsIOException when IOException is thrown while
+	 *                                 inserting/getting/deleting objects into/from G Suite.
 	 */
 	boolean processGroupMembers(Group group) throws GoogleGroupsIOException;
 
@@ -81,7 +81,7 @@ public interface GoogleGroupsService {
 	 *
 	 * @param driveWithMembers List of team drives and users from Perun
 	 * @throws GoogleGroupsIOException when IOException is thrown while
-	 * inserting/getting/deleting objects into/from G Suite.
+	 *                                 inserting/getting/deleting objects into/from G Suite.
 	 */
 	void processTeamDrives(List<GoogleGroupsServiceImpl.DriveWithMembers> driveWithMembers) throws GoogleGroupsIOException, InterruptedException;
 
@@ -91,7 +91,7 @@ public interface GoogleGroupsService {
 	 *
 	 * @param driveWithMembers List of team drives and users from Perun
 	 * @throws GoogleGroupsIOException when IOException is thrown while
-	 * creating/deleting permissions into/from G Suite.
+	 *                                 creating/deleting permissions into/from G Suite.
 	 */
 	void processTeamDriveUsers(GoogleGroupsServiceImpl.DriveWithMembers driveWithMembers) throws GoogleGroupsIOException;
 

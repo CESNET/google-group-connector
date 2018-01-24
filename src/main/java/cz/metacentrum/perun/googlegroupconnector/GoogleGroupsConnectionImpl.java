@@ -25,10 +25,10 @@ import org.slf4j.LoggerFactory;
 /**
  * GoogleGroupsConnectionImpl is an implementation of GoogleGroupsConnection
  * interface.
- *
+ * <p>
  * This class handles connection to Google Groups using their API and sets
  * suitable scope for the application.
- *
+ * <p>
  * In order to be able to work with this class you need to have
  * google_groups.properties file on the expected place with service account
  * email and user email filled in.
@@ -152,12 +152,9 @@ public class GoogleGroupsConnectionImpl implements GoogleGroupsConnection {
 	}
 
 
-
-
-
-
 	/**
 	 * Creates an authorized Credential object.
+	 *
 	 * @return an authorized Credential object.
 	 * @throws IOException
 	 */
@@ -232,7 +229,6 @@ public class GoogleGroupsConnectionImpl implements GoogleGroupsConnection {
 		}
 		return null;
 	}*/
-
 	@Override
 	public Drive getDriveService() throws IOException {
 		Credential credential = authorize();
