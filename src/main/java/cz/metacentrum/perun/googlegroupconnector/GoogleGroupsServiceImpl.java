@@ -29,7 +29,7 @@ import org.slf4j.LoggerFactory;
 
 /**
  * GoogleGroupsServiceImpl is an implementation of GoogleGroupsService interface.
- *
+ * <p>
  * This class calls GoogleGroupsConnectionImpl to prepare connection to Google
  * Groups via API and then handles propagation of changes from Perun to Google
  * Groups (insert/delete entries);
@@ -63,19 +63,19 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 
 	/**
 	 * Main method starting (de)provisioning of G Suite on your domain.
-	 * <p>
+	 *
 	 * Based on configuration in /etc/perun/google_groups-your.domain.com.properties
 	 * and passed arguments it perform different actions:
-	 * <p>
+	 *
 	 * Args:
 	 * [0] domain name
 	 * [1] action: "users", "groups", "teamDrives"
 	 * [2] path to CSV file with data
 	 *
 	 * @param args [0] domain name, [1] action [2] path to CSV file with data
-	 * @throws IOException              When reading of input file fails
+	 * @throws IOException When reading of input file fails
 	 * @throws GeneralSecurityException When connector is unable to access G Suite API
-	 * @throws GoogleGroupsIOException  When specific API call to G Suite returns Exception
+	 * @throws GoogleGroupsIOException When specific API call to G Suite returns Exception
 	 */
 	public static void main(String[] args) throws IOException, GeneralSecurityException, GoogleGroupsIOException {
 
@@ -118,10 +118,10 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 						session.processUsers(users);
 						log.info("Processing of users done.");
 					}
-					System.out.println("Users inserted: " + usersInserted);
-					System.out.println("Users updated: " + usersUpdated);
-					System.out.println("Users suspended: " + usersSuspended);
-					System.out.println("Users deleted: " + usersDeleted);
+					System.out.println("Users inserted: "+usersInserted);
+					System.out.println("Users updated: "+usersUpdated);
+					System.out.println("Users suspended: "+usersSuspended);
+					System.out.println("Users deleted: "+usersDeleted);
 					return;
 				case "groups":
 					List<Group> groups = session.parseGroupsFile(inputFile);
@@ -132,10 +132,10 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 						session.processGroups(groups);
 						log.info("Processing of groups done.");
 					}
-					System.out.println("Groups inserted: " + groupsInserted);
-					System.out.println("Groups updated: " + groupsUpdated);
-					System.out.println("Groups with updated members:" + groupsUpdatedMembers);
-					System.out.println("Groups deleted: " + groupsDeleted);
+					System.out.println("Groups inserted: "+groupsInserted);
+					System.out.println("Groups updated: "+groupsUpdated);
+					System.out.println("Groups with updated members:"+groupsUpdatedMembers);
+					System.out.println("Groups deleted: "+groupsDeleted);
 					return;
 
 				case "teamDrives":
@@ -195,7 +195,7 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 					user.setPrimaryEmail(line[0]);
 
 					// skip group outside own domain !!
-					if (!Objects.equals(user.getPrimaryEmail().substring(user.getPrimaryEmail().indexOf("@") + 1), domainName)) {
+					if (!Objects.equals(user.getPrimaryEmail().substring(user.getPrimaryEmail().indexOf("@")+1), domainName)) {
 						log.warn("User: {} is not from your domain: {}. Skip it.", user, domainName);
 						continue;
 					}
@@ -281,7 +281,7 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 					}
 
 					// skip group outside own domain !!
-					if (!Objects.equals(group.getEmail().substring(group.getEmail().indexOf("@") + 1), domainName)) {
+					if (!Objects.equals(group.getEmail().substring(group.getEmail().indexOf("@")+1), domainName)) {
 						log.warn("Group: {} is not from your domain: {}. Skip it.", group, domainName);
 						continue;
 					}
@@ -570,7 +570,7 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 			}
 
 			// check members for removal
-			for (Member memberInGroup : domainGroupMembers) {
+			for (Member memberInGroup: domainGroupMembers) {
 				String domainMemberId = (("id".equals(memberIdType)) ? memberInGroup.getId() : memberInGroup.getEmail());
 				boolean isInPerun = false;
 				for (String perunMemberId : groupsMembers.get(group.getEmail())) {
@@ -638,7 +638,6 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 		}
 	}
 
-
 	/**
 	 * Insert new group to your domain.
 	 *
@@ -673,7 +672,7 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 	 * Update group in your domain.
 	 *
 	 * @param groupKey Unique group identifier (email).
-	 * @param group    Group to be updated
+	 * @param group Group to be updated
 	 * @throws GoogleGroupsIOException When API call fails.
 	 */
 	private void updateGroup(String groupKey, Group group) throws GoogleGroupsIOException {
@@ -722,7 +721,7 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 
 			// give users random passwords needed for creation
 			char[] possibleCharacters = ("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789~`!@#$%^&*()-_=+[{]}\\|;:\'\",<.>/?").toCharArray();
-			String randomStr = RandomStringUtils.random(40, 0, possibleCharacters.length - 1, false, false, possibleCharacters, new SecureRandom());
+			String randomStr = RandomStringUtils.random( 40, 0, possibleCharacters.length-1, false, false, possibleCharacters, new SecureRandom());
 			user.setPassword(randomStr);
 
 			service.users().insert(user).execute();
@@ -751,7 +750,7 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 	 * Update user in your domain.
 	 *
 	 * @param userKey Key to identify User to update
-	 * @param user    User with updated properties
+	 * @param user User with updated properties
 	 * @throws GoogleGroupsIOException When API call fails.
 	 */
 	private void updateUser(String userKey, User user) throws GoogleGroupsIOException {
@@ -762,7 +761,6 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 			throw new GoogleGroupsIOException("Something went wrong while updating user " + user.getPrimaryEmail() + " in Google Groups", ex);
 		}
 	}
-
 
 	/**
 	 * Return List of groups Members.
@@ -793,7 +791,7 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 	 * Insert Member to the group in your domain.
 	 *
 	 * @param groupName Group to have member inserted.
-	 * @param member    Member to be inserted.
+	 * @param member Member to be inserted.
 	 * @throws GoogleGroupsIOException When API call fails.
 	 */
 	private void insertMember(String groupName, Member member) throws GoogleGroupsIOException {
@@ -816,8 +814,8 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 	 * Delete Member from the group in your domain.
 	 *
 	 * @param groupName Group to have member deleted.
-	 * @param memberId  Member to be deleted.
-	 * @throws GoogleGroupsIOException When API call fails.
+	 * @param memberId Member to be deleted.
+	 * @throws GoogleGroupsIOException  When API call fails.
 	 */
 	private void deleteMember(String groupName, String memberId) throws GoogleGroupsIOException {
 		try {
@@ -827,6 +825,7 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 			throw new GoogleGroupsIOException("Something went wrong while deleting member with ID " + memberId + " from group " + groupName + " in Google Groups", ex);
 		}
 	}
+
 
 	/**
 	 * New class representing tuple of team drive and its users from CSV file.
@@ -1107,5 +1106,6 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 			throw new GoogleGroupsIOException("Something went wrong while deleting team drive", ex);
 		}
 	}
+
 
 }

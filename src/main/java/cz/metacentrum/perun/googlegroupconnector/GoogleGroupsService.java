@@ -3,7 +3,6 @@ package cz.metacentrum.perun.googlegroupconnector;
 import com.google.api.services.admin.directory.model.Group;
 import com.google.api.services.admin.directory.model.User;
 import cz.metacentrum.perun.googlegroupconnector.exceptions.GoogleGroupsIOException;
-
 import java.io.File;
 import java.util.List;
 
@@ -17,7 +16,7 @@ public interface GoogleGroupsService {
 	/**
 	 * Parse input file to list of Users of G Suite domain.
 	 * Format is:
-	 * <p>
+	 *
 	 * primaryMail;givenName;familyName;fullName
 	 *
 	 * @param usersFile CSV input file
@@ -28,7 +27,7 @@ public interface GoogleGroupsService {
 	/**
 	 * Parse input file to list of Group of G Suite domain.
 	 * Format is:
-	 * <p>
+	 *
 	 * identifier(mail);displayName;list,of,member,identifiers,split,by,commas
 	 *
 	 * @param groupsFile CSV input file
@@ -39,7 +38,7 @@ public interface GoogleGroupsService {
 	/**
 	 * Parse input file to pair of TeamDrive and list of Users who belong to team of G Suite domain.
 	 * Format is:
-	 * <p>
+	 *
 	 * identifier of TeamDrive(name);mails of team members split by commas
 	 *
 	 * @param teamDriveFile CSV input file
@@ -52,9 +51,8 @@ public interface GoogleGroupsService {
 	 *
 	 * @param users List of Users from Perun
 	 * @throws GoogleGroupsIOException when IOException is thrown while
-	 *                                 inserting/getting/deleting objects into/from G Suite.
+	 * inserting/getting/deleting objects into/from G Suite.
 	 */
-
 	void processUsers(List<User> users) throws GoogleGroupsIOException;
 
 	/**
@@ -62,7 +60,7 @@ public interface GoogleGroupsService {
 	 *
 	 * @param groups List of Groups from Perun
 	 * @throws GoogleGroupsIOException when IOException is thrown while
-	 *                                 inserting/getting/deleting objects into/from G Suite.
+	 * inserting/getting/deleting objects into/from G Suite.
 	 */
 	void processGroups(List<Group> groups) throws GoogleGroupsIOException, InterruptedException;
 
@@ -70,11 +68,12 @@ public interface GoogleGroupsService {
 	 * Propagates changes in groups membership from Perun to G Suite domain.
 	 *
 	 * @param group Group to update members for
-	 * @return TRUE = group members changed / group members unchanged
 	 * @throws GoogleGroupsIOException when IOException is thrown while
-	 *                                 inserting/getting/deleting objects into/from G Suite.
+	 * inserting/getting/deleting objects into/from G Suite.
+	 * @return TRUE = group members changed / group members unchanged
 	 */
 	boolean processGroupMembers(Group group) throws GoogleGroupsIOException;
+
 
 	/**
 	 * Propagates changes in team drives from Perun to G Suite domain.

@@ -12,7 +12,6 @@ import com.google.api.services.admin.directory.Directory;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-
 import java.security.GeneralSecurityException;
 import java.util.Arrays;
 import java.util.List;
@@ -21,14 +20,13 @@ import java.util.Properties;
 import com.google.api.services.drive.Drive;
 import org.slf4j.LoggerFactory;
 
-
 /**
  * GoogleGroupsConnectionImpl is an implementation of GoogleGroupsConnection
  * interface.
- * <p>
+ *
  * This class handles connection to Google Groups using their API and sets
  * suitable scope for the application.
- * <p>
+ *
  * In order to be able to work with this class you need to have
  * google_groups.properties file on the expected place with service account
  * email and user email filled in.
