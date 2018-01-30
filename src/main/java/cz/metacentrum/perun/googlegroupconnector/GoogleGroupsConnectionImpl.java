@@ -72,6 +72,11 @@ public class GoogleGroupsConnectionImpl implements GoogleGroupsConnection {
 		return new Directory.Builder(HTTP_TRANSPORT, JSON_FACTORY, authorize()).setApplicationName(APPLICATION_NAME).build();
 	}
 
+	@Override
+	public Drive getDriveService() throws IOException {
+		return new Drive.Builder(HTTP_TRANSPORT, JSON_FACTORY, authorize()).setApplicationName(APPLICATION_NAME).build();
+	}
+
 	/**
 	 * Returns variable containing domain name.
 	 *
@@ -227,14 +232,5 @@ public class GoogleGroupsConnectionImpl implements GoogleGroupsConnection {
 		}
 		return null;
 	}*/
-	@Override
-	public Drive getDriveService() throws IOException {
-		Credential credential = authorize();
-		return new Drive.Builder(
-				HTTP_TRANSPORT, JSON_FACTORY, credential)
-				.setApplicationName(APPLICATION_NAME)
-				.build();
-	}
-
 
 }

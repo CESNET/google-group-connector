@@ -2,9 +2,11 @@ package cz.metacentrum.perun.googlegroupconnector;
 
 import com.google.api.services.admin.directory.model.Group;
 import com.google.api.services.admin.directory.model.User;
+import com.google.api.services.drive.model.TeamDrive;
 import cz.metacentrum.perun.googlegroupconnector.exceptions.GoogleGroupsIOException;
 import java.io.File;
 import java.util.List;
+import java.util.Map;
 
 /**
  * GoogleGroupsService represents google_groups service for Perun.
@@ -44,7 +46,7 @@ public interface GoogleGroupsService {
 	 * @param teamDriveFile CSV input file
 	 * @return Pair of TeamDrive and List of Users(team members)
 	 */
-	List<GoogleGroupsServiceImpl.DriveWithMembers> parseTeamDrivesFile(File teamDriveFile);
+	Map<TeamDrive, List<User>> parseTeamDrivesFile(File teamDriveFile);
 
 	/**
 	 * Propagates changes in users from Perun to G Suite domain.
@@ -82,7 +84,7 @@ public interface GoogleGroupsService {
 	 * @throws GoogleGroupsIOException when IOException is thrown while
 	 *                                 inserting/getting/deleting objects into/from G Suite.
 	 */
-	void processTeamDrives(List<GoogleGroupsServiceImpl.DriveWithMembers> driveWithMembers) throws GoogleGroupsIOException, InterruptedException;
+	void processTeamDrives(Map<TeamDrive, List<User>> driveWithMembers) throws GoogleGroupsIOException, InterruptedException;
 
 	/**
 	 * /**
@@ -92,6 +94,6 @@ public interface GoogleGroupsService {
 	 * @throws GoogleGroupsIOException when IOException is thrown while
 	 *                                 creating/deleting permissions into/from G Suite.
 	 */
-	void processTeamDriveUsers(GoogleGroupsServiceImpl.DriveWithMembers driveWithMembers) throws GoogleGroupsIOException;
+	void processTeamDriveUsers(Map.Entry<TeamDrive, List<User>> driveWithMembers) throws GoogleGroupsIOException;
 
 }

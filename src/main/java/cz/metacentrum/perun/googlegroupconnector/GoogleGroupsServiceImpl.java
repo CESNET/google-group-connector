@@ -55,7 +55,6 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 	private static int groupsDeleted = 0;
 	private static int groupsUpdatedMembers = 0;
 	private static int teamDrivesInserted = 0;
-	private static int teamDrivesUpdated = 0;
 	private static int teamDrivesDeleted = 0;
 	private static int teamDriveUsersAdded = 0;
 	private static int teamDriveUsersDeleted = 0;
@@ -139,16 +138,15 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 					return;
 
 				case "teamDrives":
-					List<DriveWithMembers> drivesAndMembers = session.parseTeamDrivesFile(inputFile);
+					Map<TeamDrive, List<User>> drivesWithMembers = session.parseTeamDrivesFile(inputFile);
 					log.info("Team drives file parsed...");
-					if (drivesAndMembers == null || drivesAndMembers.isEmpty()) {
+					if (drivesWithMembers == null || drivesWithMembers.isEmpty()) {
 						log.warn("Processing of team drives skipped.");
 					} else {
-						session.processTeamDrives(drivesAndMembers);
+						session.processTeamDrives(drivesWithMembers);
 						log.info("Processing of team drives done.");
 					}
 					System.out.println("Team drives inserted: " + teamDrivesInserted);
-					System.out.println("Team drives updated: " + teamDrivesUpdated);
 					System.out.println("Team drives deleted" + teamDrivesDeleted);
 					System.out.println("Team drive users added" + teamDriveUsersAdded);
 					System.out.println("Team drive users deleted" + teamDriveUsersDeleted);
@@ -826,40 +824,10 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 		}
 	}
 
-
-	/**
-	 * New class representing tuple of team drive and its users from CSV file.
-	 */
-	public class DriveWithMembers {
-		private TeamDrive teamDrive;
-		private List<User> driveUsers = new ArrayList<>();
-
-		DriveWithMembers(TeamDrive teamDrive, List<User> driveUsers) {
-			this.teamDrive = teamDrive;
-			this.driveUsers = driveUsers;
-		}
-
-		public TeamDrive getTeamDrive() {
-			return teamDrive;
-		}
-
-		public void setTeamDrive(TeamDrive teamDrive) {
-			this.teamDrive = teamDrive;
-		}
-
-		public List<User> getDriveUsers() {
-			return driveUsers;
-		}
-
-		public void setDriveUsers(List<User> driveUsers) {
-			this.driveUsers = driveUsers;
-		}
-	}
-
 	@Override
-	public List<DriveWithMembers> parseTeamDrivesFile(File teamDriveFile) {
+	public Map<TeamDrive, List<User>> parseTeamDrivesFile(File teamDriveFile) {
 
-		List<DriveWithMembers> result = new ArrayList<>();
+		Map<TeamDrive, List<User>> result = new HashMap<>();
 		FileReader fileReader = null;
 
 		try {
@@ -882,7 +850,7 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 					TeamDrive teamDriveResult = new TeamDrive();
 					List<User> userListResult = new ArrayList<>();
 
-					teamDriveResult.setName(line[0].toLowerCase());
+					teamDriveResult.setName(line[0]);
 					List<String> membersEmail = Arrays.asList(line[1].split(","));
 
 					for (String userMail : membersEmail) {
@@ -892,7 +860,7 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 						userListResult.add(user);
 					}
 
-					result.add(new DriveWithMembers(teamDriveResult, userListResult));
+					result.put(teamDriveResult, userListResult);
 				}
 
 				return result;
@@ -913,7 +881,7 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 	}
 
 	@Override
-	public void processTeamDrives(List<DriveWithMembers> driveWithMembers) throws GoogleGroupsIOException, InterruptedException {
+	public void processTeamDrives(Map<TeamDrive, List<User>> driveWithMembers) throws GoogleGroupsIOException, InterruptedException {
 
 		TeamDriveList dd = getTeamDrives();
 		List<TeamDrive> domainDrives = new ArrayList<>();
@@ -923,26 +891,17 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 			// domain is not empty, compare state
 			domainDrives.addAll(dd.getTeamDrives());
 
-			// create, update team drives
-			for (DriveWithMembers dm : driveWithMembers) {
+			// create team drives, process users permissions
+			for (Map.Entry<TeamDrive, List<User>> dm : driveWithMembers.entrySet()) {
 				boolean isInPerun = false;
 				for (TeamDrive td : domainDrives) {
-
-					if (td.getName().equals(dm.getTeamDrive().getName())) isInPerun = true;
-
-					if (!Objects.equals(dm.getTeamDrive().getBackgroundImageFile(), td.getBackgroundImageFile()) ||
-							!Objects.equals(dm.getTeamDrive().getColorRgb(), td.getColorRgb()) ||
-							!Objects.equals(dm.getTeamDrive().getThemeId(), td.getThemeId())) {
-						updateTeamDrive(td.getId(), dm.getTeamDrive());
-						teamDrivesUpdated++;
-						log.info("TeamDrive updated: {}", dm.getTeamDrive().getName());
-					}
+					if (td.getName().equals(dm.getKey().getName())) isInPerun = true;
 				}
 
 				if (!isInPerun) {
 					// create new teamDrive
-					insertTeamDrive(dm.getTeamDrive());
-					log.info("TeamDrive created: {}", dm.getTeamDrive().getName());
+					insertTeamDrive(dm.getKey());
+					log.info("TeamDrive created: {}", dm.getKey().getName());
 					teamDrivesInserted++;
 
 					// FIXME - We must wait before asking for users of newly created team drive
@@ -957,22 +916,25 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 		//delete team drives
 		for (TeamDrive td : domainDrives) {
 			boolean suspend = true;
-			for (DriveWithMembers dm : driveWithMembers) {
-				if (dm.getTeamDrive().getName().equals(td.getName())) suspend = false;
+			for (Map.Entry<TeamDrive, List<User>> dm : driveWithMembers.entrySet()) {
+				if (dm.getKey().getName().equals(td.getName())) suspend = false;
 			}
 
-			if (suspend) deleteTeamDrive(td);
+			if (suspend) {
+				deleteTeamDrive(td);
+				teamDrivesDeleted++;
+			}
 		}
 	}
 
 	@Override
-	public void processTeamDriveUsers(DriveWithMembers dm) throws GoogleGroupsIOException {
+	public void processTeamDriveUsers(Map.Entry<TeamDrive, List<User>> dm) throws GoogleGroupsIOException {
 		PermissionList permissionList;
 		try {
 			String nextPageToken = null;
 
 			do {
-				permissionList = driveService.permissions().list(dm.getTeamDrive().getId())
+				permissionList = driveService.permissions().list(dm.getKey().getId())
 						.setUseDomainAdminAccess(true)
 						.setPageToken(nextPageToken)
 						.execute();
@@ -985,7 +947,7 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 		List<Permission> permissions = permissionList.getPermissions();
 
 		boolean newDriveUser = false;
-		for (User user : dm.getDriveUsers()) {
+		for (User user : dm.getValue()) {
 			for (Permission permission : permissions) {
 				if (user.getPrimaryEmail().equals(permission.getEmailAddress())) newDriveUser = true;
 			}
@@ -998,7 +960,7 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 
 				try {
 					driveService.permissions()
-							.create(dm.getTeamDrive().getId(), newOrganizerPermission)
+							.create(dm.getKey().getId(), newOrganizerPermission)
 							.setUseDomainAdminAccess(true)
 							.setSupportsTeamDrives(true)
 							.setFields("id")
@@ -1015,13 +977,13 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 
 		boolean oldDriveUser = true;
 		for (Permission permission : permissions) {
-			for (User user : dm.getDriveUsers()) {
+			for (User user : dm.getValue()) {
 				if (permission.getEmailAddress().equals(user.getPrimaryEmail())) oldDriveUser = false;
 			}
 
 			if (oldDriveUser) {
 				try {
-					driveService.permissions().delete(dm.getTeamDrive().getId(), permission.getId());
+					driveService.permissions().delete(dm.getKey().getId(), permission.getId());
 					teamDriveUsersDeleted++;
 				} catch (IOException ex) {
 					throw new GoogleGroupsIOException("Something went wrong while deleting old permission: " + permission.getId(), ex);
@@ -1073,21 +1035,6 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 			driveService.teamdrives().create(requestId, teamDriveMetaData).execute();
 		} catch (IOException ex) {
 			throw new GoogleGroupsIOException("Something went wrong while inserting new team drive", ex);
-		}
-	}
-
-	/**
-	 * Update existing team drive.
-	 *
-	 * @param driveKey id of drive, which has to be updated.
-	 * @param td       team drive with updated properties.
-	 * @throws GoogleGroupsIOException When API call fails.
-	 */
-	private void updateTeamDrive(String driveKey, TeamDrive td) throws GoogleGroupsIOException {
-		try {
-			driveService.teamdrives().update(driveKey, td).execute();
-		} catch (IOException ex) {
-			throw new GoogleGroupsIOException("Something went wrong while updating team drive: " + td.getName(), ex);
 		}
 	}
 
