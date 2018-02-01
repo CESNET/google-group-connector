@@ -318,6 +318,62 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 	}
 
 	@Override
+	public Map<TeamDrive, List<User>> parseTeamDrivesFile(File teamDriveFile) {
+
+		Map<TeamDrive, List<User>> result = new HashMap<>();
+		FileReader fileReader = null;
+
+		try {
+
+			fileReader = new FileReader(teamDriveFile);
+
+			char separator = ';';
+			CSVReader reader = new CSVReader(fileReader, separator);
+
+			List<String[]> lines = reader.readAll();
+			if (lines != null && !lines.isEmpty()) {
+
+				for (String[] line : lines) {
+
+					if (line.length < 2) {
+						log.error("TeamDrive file contains row with less than 2 columns: {}", line);
+						throw new IllegalArgumentException("TeamDrive file contains row with less than 3 columns:" + line[0]);
+					}
+
+					TeamDrive teamDriveResult = new TeamDrive();
+					List<User> userListResult = new ArrayList<>();
+
+					teamDriveResult.setName(line[0]);
+					List<String> membersEmail = Arrays.asList(line[1].split(","));
+
+					for (String userMail : membersEmail) {
+						userMail = userMail.replaceAll("\\s+", "");
+						User user = new User();
+						user.setPrimaryEmail(userMail);
+						userListResult.add(user);
+					}
+
+					result.put(teamDriveResult, userListResult);
+				}
+
+				return result;
+			} else {
+				log.error("Team drive file contains no rows.");
+				throw new IllegalArgumentException("Team drive file contains no rows.");
+			}
+		} catch (IOException ex) {
+			log.error("Problem with I/O operation while reading lines of file {} by FileReader.readNext() or getting file: {}", teamDriveFile.getAbsolutePath(), ex);
+		} finally {
+			try {
+				if (fileReader != null) fileReader.close();
+			} catch (IOException ex) {
+				log.error("Problem with I/O operation while closing file {} : {}", teamDriveFile.getAbsolutePath(), ex);
+			}
+		}
+		return null;
+	}
+
+	@Override
 	public void processUsers(List<User> users) throws GoogleGroupsIOException {
 
 		List<User> domainUsers = new ArrayList<>();
@@ -824,61 +880,6 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 		}
 	}
 
-	@Override
-	public Map<TeamDrive, List<User>> parseTeamDrivesFile(File teamDriveFile) {
-
-		Map<TeamDrive, List<User>> result = new HashMap<>();
-		FileReader fileReader = null;
-
-		try {
-
-			fileReader = new FileReader(teamDriveFile);
-
-			char separator = ';';
-			CSVReader reader = new CSVReader(fileReader, separator);
-
-			List<String[]> lines = reader.readAll();
-			if (lines != null && !lines.isEmpty()) {
-
-				for (String[] line : lines) {
-
-					if (line.length < 2) {
-						log.error("TeamDrive file contains row with less than 2 columns: {}", line);
-						throw new IllegalArgumentException("TeamDrive file contains row with less than 3 columns:" + line[0]);
-					}
-
-					TeamDrive teamDriveResult = new TeamDrive();
-					List<User> userListResult = new ArrayList<>();
-
-					teamDriveResult.setName(line[0]);
-					List<String> membersEmail = Arrays.asList(line[1].split(","));
-
-					for (String userMail : membersEmail) {
-						userMail = userMail.replaceAll("\\s+", "");
-						User user = new User();
-						user.setPrimaryEmail(userMail);
-						userListResult.add(user);
-					}
-
-					result.put(teamDriveResult, userListResult);
-				}
-
-				return result;
-			} else {
-				log.error("Team drive file contains no rows.");
-				throw new IllegalArgumentException("Team drive file contains no rows.");
-			}
-		} catch (IOException ex) {
-			log.error("Problem with I/O operation while reading lines of file {} by FileReader.readNext() or getting file: {}", teamDriveFile.getAbsolutePath(), ex);
-		} finally {
-			try {
-				if (fileReader != null) fileReader.close();
-			} catch (IOException ex) {
-				log.error("Problem with I/O operation while closing file {} : {}", teamDriveFile.getAbsolutePath(), ex);
-			}
-		}
-		return null;
-	}
 
 	@Override
 	public void processTeamDrives(Map<TeamDrive, List<User>> driveWithMembers) throws GoogleGroupsIOException, InterruptedException {
