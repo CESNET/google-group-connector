@@ -147,9 +147,9 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 						log.info("Processing of team drives done.");
 					}
 					System.out.println("Team drives inserted: " + teamDrivesInserted);
-					System.out.println("Team drives deleted" + teamDrivesDeleted);
-					System.out.println("Team drive users added" + teamDriveUsersAdded);
-					System.out.println("Team drive users deleted" + teamDriveUsersDeleted);
+					System.out.println("Team drives deleted: " + teamDrivesDeleted);
+					System.out.println("Team drive permissions added: " + teamDriveUsersAdded);
+					System.out.println("Team drive permissions deleted: " + teamDriveUsersDeleted);
 					return;
 
 
@@ -885,112 +885,129 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 	public void processTeamDrives(Map<TeamDrive, List<User>> driveWithMembers) throws GoogleGroupsIOException, InterruptedException {
 
 		TeamDriveList dd = getTeamDrives();
-		List<TeamDrive> domainDrives = new ArrayList<>();
 
-		if (dd != null && !dd.isEmpty() && dd.getTeamDrives() != null) {
+		if (dd != null && !dd.isEmpty() && dd.getTeamDrives() != null && !dd.getTeamDrives().isEmpty()) {
 
 			// domain is not empty, compare state
-			domainDrives.addAll(dd.getTeamDrives());
+			List<TeamDrive> domainDrives = new ArrayList<>(dd.getTeamDrives());
 
 			// create team drives, process users permissions
+
 			for (Map.Entry<TeamDrive, List<User>> dm : driveWithMembers.entrySet()) {
-				boolean isInPerun = false;
+
+				TeamDrive domainDrive = null;
 				for (TeamDrive td : domainDrives) {
-					if (td.getName().equals(dm.getKey().getName())) isInPerun = true;
+					if (Objects.equals(td.getName(), dm.getKey().getName())) {
+						domainDrive = td;
+						break;
+					}
 				}
 
-				if (!isInPerun) {
-					// create new teamDrive
+				if (domainDrive == null) {
+
+					// drive not in domain, create
 					insertTeamDrive(dm.getKey());
 					log.info("TeamDrive created: {}", dm.getKey().getName());
 					teamDrivesInserted++;
+					// put back for update permissions
+					domainDrive = dm.getKey();
 
-					// FIXME - We must wait before asking for users of newly created team drive
-					Thread.sleep(2000);
-					// handle team drive users
-					processTeamDriveUsers(dm);
 				}
 
-			}
-		}
+				// update permission for both new and existing TeamDrives
+				// use domainDrive object, since it contains ID !!
+				// FIXME - We must wait before asking for users of newly created team drive
+				Thread.sleep(2000);
+				processTeamDrivePermissions(domainDrive, dm.getValue());
 
-		//delete team drives
-		for (TeamDrive td : domainDrives) {
-			boolean suspend = true;
+			}
+
+			// delete team drives
+			TeamDrive perunDrive = null;
+			for (TeamDrive domainDrive : domainDrives) {
+				for (TeamDrive teamDrive : driveWithMembers.keySet()) {
+					if (Objects.equals(teamDrive.getName(), domainDrive.getName())) {
+						perunDrive = teamDrive;
+						break;
+					}
+				}
+
+				if (perunDrive == null) {
+
+					// delete domain drive (not found from Perun)
+					deleteTeamDrive(domainDrive);
+					teamDrivesDeleted++;
+
+				}
+			}
+
+		} else {
+
+			// domain is empty, add all drives
 			for (Map.Entry<TeamDrive, List<User>> dm : driveWithMembers.entrySet()) {
-				if (dm.getKey().getName().equals(td.getName())) suspend = false;
+				// create new teamDrive
+				insertTeamDrive(dm.getKey());
+				log.info("TeamDrive created: {}", dm.getKey().getName());
+				teamDrivesInserted++;
+
+				// FIXME - We must wait before asking for users of newly created team drive
+				Thread.sleep(2000);
+				// handle team drive users
+				processTeamDrivePermissions(dm.getKey(), dm.getValue());
+
 			}
 
-			if (suspend) {
-				deleteTeamDrive(td);
-				teamDrivesDeleted++;
-			}
 		}
+
 	}
 
 	@Override
-	public void processTeamDriveUsers(Map.Entry<TeamDrive, List<User>> dm) throws GoogleGroupsIOException {
-		PermissionList permissionList;
-		try {
-			String nextPageToken = null;
+	public void processTeamDrivePermissions(TeamDrive teamDrive, List<User> users) throws GoogleGroupsIOException {
 
-			do {
-				permissionList = driveService.permissions().list(dm.getKey().getId())
-						.setUseDomainAdminAccess(true)
-						.setPageToken(nextPageToken)
-						.execute();
-				nextPageToken = permissionList.getNextPageToken();
-			} while (nextPageToken != null);
-		} catch (IOException ex) {
-			throw new GoogleGroupsIOException("Something went wrong while getting all existing permissions", ex);
-		}
+		List<Permission> permissions = getPermissions(teamDrive).getPermissions();
 
-		List<Permission> permissions = permissionList.getPermissions();
+		if (permissions != null && !permissions.isEmpty()) {
 
-		boolean newDriveUser = false;
-		for (User user : dm.getValue()) {
-			for (Permission permission : permissions) {
-				if (user.getPrimaryEmail().equals(permission.getEmailAddress())) newDriveUser = true;
-			}
-			if (!newDriveUser) {
-				log.debug("Set drive permission for user: {}", user.getPrimaryEmail());
-				Permission newOrganizerPermission = new Permission()
-						.setType("user")
-						.setRole("organizer")
-						.setEmailAddress(user.getPrimaryEmail());
-
-				try {
-					driveService.permissions()
-							.create(dm.getKey().getId(), newOrganizerPermission)
-							.setUseDomainAdminAccess(true)
-							.setSupportsTeamDrives(true)
-							.setFields("id")
-							.execute();
-				} catch (IOException ex) {
-					throw new GoogleGroupsIOException("Something went wrong while creating new permission: "
-							+ newOrganizerPermission.getId(), ex);
+			// add new permissions
+			for (User user : users) {
+				boolean notInDrive = true;
+				for (Permission permission : permissions) {
+					if (Objects.equals(user.getPrimaryEmail(), permission.getEmailAddress())) {
+						notInDrive = false;
+						break;
+					}
 				}
+
+				if (notInDrive) {
+					insertPermission(teamDrive, user);
+					teamDriveUsersAdded++;
+				}
+			}
+
+			// remove old permission
+			for (Permission permission : permissions) {
+				boolean notInPerun = true;
+				for (User user : users) {
+					if (Objects.equals(user.getPrimaryEmail(), permission.getEmailAddress())) {
+						notInPerun = false;
+						break;
+					}
+				}
+
+				if (notInPerun) {
+					deletePermission(teamDrive, permission);
+					teamDriveUsersDeleted++;
+				}
+			}
+
+		} else {
+
+			// permissions are empty - insert all from Perun
+			for (User user : users) {
+				insertPermission(teamDrive, user);
 				teamDriveUsersAdded++;
 			}
 
-			newDriveUser = false;
-		}
-
-		boolean oldDriveUser = true;
-		for (Permission permission : permissions) {
-			for (User user : dm.getValue()) {
-				if (permission.getEmailAddress().equals(user.getPrimaryEmail())) oldDriveUser = false;
-			}
-
-			if (oldDriveUser) {
-				try {
-					driveService.permissions().delete(dm.getKey().getId(), permission.getId());
-					teamDriveUsersDeleted++;
-				} catch (IOException ex) {
-					throw new GoogleGroupsIOException("Something went wrong while deleting old permission: " + permission.getId(), ex);
-				}
-			}
-			oldDriveUser = true;
 		}
 
 	}
@@ -1003,22 +1020,68 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 	 */
 	private TeamDriveList getTeamDrives() throws GoogleGroupsIOException {
 
-		String pageToken = null;
-		log.debug("Listing existing TeamDrives");
-		TeamDriveList result;
 		try {
-			do {
-				result = driveService.teamdrives().list()
+			log.debug("Listing existing TeamDrives from Domain: {}", domainName);
+			TeamDriveList teamDriveList = driveService.teamdrives().list()
+					.setFields("nextPageToken, teamDrives(id, name)")
+					.setUseDomainAdminAccess(true)
+					.execute();
+			// fill list of users by next page
+			boolean next = (teamDriveList.getNextPageToken() != null);
+			while (next) {
+				TeamDriveList teamDriveList2 = driveService.teamdrives().list()
 						.setFields("nextPageToken, teamDrives(id, name)")
 						.setUseDomainAdminAccess(true)
-						.setPageToken(pageToken)
+						.setPageToken(teamDriveList.getNextPageToken())
 						.execute();
-				pageToken = result.getNextPageToken();
-			} while (pageToken != null);
+
+				teamDriveList.getTeamDrives().addAll(teamDriveList2.getTeamDrives());
+				teamDriveList.setNextPageToken(teamDriveList2.getNextPageToken());
+				next = (teamDriveList2.getNextPageToken() != null);
+			}
+
+			return teamDriveList;
+
 		} catch (IOException ex) {
 			throw new GoogleGroupsIOException("Something went wrong while getting all team drives", ex);
 		}
-		return result;
+
+	}
+
+	/**
+	 * Return TeamDrive permissions
+	 *
+	 * @param teamDrive TeamDrive to get permissions for
+	 * @return PermissionList of all existing permissions for selected Drive.
+	 * @throws GoogleGroupsIOException When API call fails.
+	 */
+	private PermissionList getPermissions(TeamDrive teamDrive) throws GoogleGroupsIOException {
+
+		try {
+			log.debug("Listing existing TeamDrives Permissions from Domain: {}", domainName);
+			PermissionList permissionList = driveService.permissions().list(teamDrive.getId())
+					.setSupportsTeamDrives(true)
+					.setUseDomainAdminAccess(true)
+					.execute();
+			// fill list of users by next page
+			boolean next = (permissionList.getNextPageToken() != null);
+			while (next) {
+				PermissionList permissionList2 = driveService.permissions().list(teamDrive.getId())
+						.setUseDomainAdminAccess(true)
+						.setSupportsTeamDrives(true)
+						.setPageToken(permissionList.getNextPageToken())
+						.execute();
+
+				permissionList.getPermissions().addAll(permissionList2.getPermissions());
+				permissionList.setNextPageToken(permissionList2.getNextPageToken());
+				next = (permissionList2.getNextPageToken() != null);
+			}
+			return permissionList;
+
+		} catch (IOException ex) {
+			throw new GoogleGroupsIOException("Something went wrong while getting permissions for TeamDrive.", ex);
+		}
+
 	}
 
 	/**
@@ -1028,12 +1091,15 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 	 * @throws GoogleGroupsIOException When API call fails.
 	 */
 	private void insertTeamDrive(TeamDrive teamDrive) throws GoogleGroupsIOException {
-		log.debug("Creating team drive: {}", teamDrive);
 		try {
+			// since original object contains members, we pick only name param
 			TeamDrive teamDriveMetaData = new TeamDrive();
 			teamDriveMetaData.setName(teamDrive.getName());
 			String requestId = UUID.randomUUID().toString();
-			driveService.teamdrives().create(requestId, teamDriveMetaData).execute();
+			TeamDrive returnedTeamDrive = driveService.teamdrives().create(requestId, teamDriveMetaData).execute();
+			// push back new object IDs so we can
+			teamDrive.setId(returnedTeamDrive.getId());
+			log.debug("Creating TeamDrive: {}", teamDrive);
 		} catch (IOException ex) {
 			throw new GoogleGroupsIOException("Something went wrong while inserting new team drive", ex);
 		}
@@ -1049,11 +1115,53 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 		try {
 			String key = teamDrive.getId();
 			driveService.teamdrives().delete(teamDrive.getId());
-			log.debug("Deleting team drive: {} ", key);
+			log.debug("Deleting TeamDrive: {} ", key);
 		} catch (IOException ex) {
 			throw new GoogleGroupsIOException("Something went wrong while deleting team drive", ex);
 		}
 	}
 
+	/**
+	 * Insert new TeamDrive Permission
+	 *
+	 * @param teamDrive drive to have permission created
+	 * @param user to have permission created
+	 * @throws GoogleGroupsIOException When API call fails.
+	 */
+	private void insertPermission(TeamDrive teamDrive, User user) throws GoogleGroupsIOException {
+
+		Permission newOrganizerPermission = new Permission()
+				.setType("user")
+				.setRole("organizer")
+				.setEmailAddress(user.getPrimaryEmail());
+
+		try {
+			Permission result = driveService.permissions()
+					.create(teamDrive.getId(), newOrganizerPermission)
+					.setUseDomainAdminAccess(true)
+					.setSupportsTeamDrives(true)
+					.setFields("id")
+					.execute();
+			log.debug("Creating TeamDrive Permission: {} ", result);
+		} catch (IOException ex) {
+			throw new GoogleGroupsIOException("Something went wrong while creating new permission: " + newOrganizerPermission, ex);
+		}
+
+	}
+
+	/**
+	 * Delete existing Permission on TeamDrive.
+	 *
+	 * @param permission permission to be deleted.
+	 * @throws GoogleGroupsIOException When API call fails.
+	 */
+	private void deletePermission(TeamDrive teamDrive, Permission permission) throws GoogleGroupsIOException {
+		try {
+			driveService.permissions().delete(teamDrive.getId(), permission.getId());
+			log.debug("Deleting TeamDrive Permission: {} ", permission.getId());
+		} catch (IOException ex) {
+			throw new GoogleGroupsIOException("Something went wrong while deleting team drive permission", ex);
+		}
+	}
 
 }

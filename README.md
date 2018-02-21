@@ -24,6 +24,8 @@ Secondly, generate your P12 key in your Developers Console.
 
 Thirdly, set your API Scopes according to [this guide](https://developers.google.com/identity/protocols/OAuth2ServiceAccount#delegatingauthority) to be able to access Google Groups data via service account. Otherwise, you will get `Insufficient Permission Exception`.
 
+If you wish to use Drive API, please enable it in developer console. Just adding scopes is not sufficient.
+
 ### Create necessary files
 
 Properties file is necessary for successful execution of the application. Name your properties file according to your domain name. E.g. if your domain name is **domain.org** then your properties file would be named like this:

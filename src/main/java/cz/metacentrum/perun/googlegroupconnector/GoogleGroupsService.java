@@ -87,13 +87,14 @@ public interface GoogleGroupsService {
 	void processTeamDrives(Map<TeamDrive, List<User>> driveWithMembers) throws GoogleGroupsIOException, InterruptedException;
 
 	/**
-	 * /**
-	 * Propagates changes in team drive permissions for its users from Perun to G Suite domain.
+	 * Propagates changes in TeamDrive Permissions for its users from Perun to G Suite domain.
+	 * TeamDrive must be retrieved from domain in order to contain ID.
 	 *
-	 * @param driveWithMembers List of team drives and users from Perun
+	 * @param teamDrive TeamDrive to process (with ID set !!)
+	 * @param users Users to process
 	 * @throws GoogleGroupsIOException when IOException is thrown while
 	 *                                 creating/deleting permissions into/from G Suite.
 	 */
-	void processTeamDriveUsers(Map.Entry<TeamDrive, List<User>> driveWithMembers) throws GoogleGroupsIOException;
+	void processTeamDrivePermissions(TeamDrive teamDrive, List<User> users) throws GoogleGroupsIOException;
 
 }
