@@ -75,37 +75,37 @@
 		<dependency>
 			<groupId>com.google.apis</groupId>
 			<artifactId>google-api-services-admin-directory</artifactId>
-			<version>directory_v1-rev80-1.22.0</version>
+			<version>directory_v1-rev91-1.23.0</version>
 		</dependency>
 		<dependency>
 			<groupId>com.google.apis</groupId>
 			<artifactId>google-api-services-drive</artifactId>
-			<version>v3-rev92-1.23.0</version>
+			<version>v3-rev101-1.23.0</version>
 		</dependency>
 		<dependency>
 			<groupId>com.google.http-client</groupId>
 			<artifactId>google-http-client-jackson2</artifactId>
-			<version>1.22.0</version>
+			<version>1.23.0</version>
 		</dependency>
 		<dependency>
 			<groupId>com.google.api-client</groupId>
 			<artifactId>google-api-client</artifactId>
-			<version>1.22.0</version>
+			<version>1.23.0</version>
 		</dependency>
 		<dependency>
 			<groupId>com.opencsv</groupId>
 			<artifactId>opencsv</artifactId>
-			<version>3.3</version>
+			<version>4.1</version>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.commons</groupId>
 			<artifactId>commons-lang3</artifactId>
-			<version>3.5</version>
+			<version>3.7</version>
 		</dependency>
 		<dependency>
 			<groupId>ch.qos.logback</groupId>
 			<artifactId>logback-classic</artifactId>
-			<version>1.1.11</version>
+			<version>1.2.3</version>
 		</dependency>
 	</dependencies>
 </project>
