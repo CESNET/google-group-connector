@@ -344,13 +344,15 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 					List<User> userListResult = new ArrayList<>();
 
 					teamDriveResult.setName(line[0]);
-					List<String> membersEmail = Arrays.asList(line[1].split(","));
 
-					for (String userMail : membersEmail) {
-						userMail = userMail.replaceAll("\\s+", "");
-						User user = new User();
-						user.setPrimaryEmail(userMail);
-						userListResult.add(user);
+					if (line[1] != null && !line[1].isEmpty()) {
+						List<String> membersEmail = Arrays.asList(line[1].split(","));
+						for (String userMail : membersEmail) {
+							userMail = userMail.replaceAll("\\s+", "");
+							User user = new User();
+							user.setPrimaryEmail(userMail);
+							userListResult.add(user);
+						}
 					}
 
 					result.put(teamDriveResult, userListResult);
@@ -994,7 +996,8 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 					}
 				}
 
-				if (notInPerun) {
+				// remove missing user -> never remove service-account permission
+				if (notInPerun && !Objects.equals(GoogleGroupsConnectionImpl.USER_EMAIL, permission.getEmailAddress())) {
 					deletePermission(teamDrive, permission);
 					teamDriveUsersDeleted++;
 				}
@@ -1060,6 +1063,7 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 		try {
 			log.debug("Listing existing TeamDrives Permissions from Domain: {}", domainName);
 			PermissionList permissionList = driveService.permissions().list(teamDrive.getId())
+					.setFields("kind, nextPageToken, permissions(id, type, role, emailAddress)")
 					.setSupportsTeamDrives(true)
 					.setUseDomainAdminAccess(true)
 					.execute();
@@ -1067,6 +1071,7 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 			boolean next = (permissionList.getNextPageToken() != null);
 			while (next) {
 				PermissionList permissionList2 = driveService.permissions().list(teamDrive.getId())
+						.setFields("kind, nextPageToken, permissions(id, type, role, emailAddress)")
 						.setUseDomainAdminAccess(true)
 						.setSupportsTeamDrives(true)
 						.setPageToken(permissionList.getNextPageToken())
@@ -1157,7 +1162,10 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 	 */
 	private void deletePermission(TeamDrive teamDrive, Permission permission) throws GoogleGroupsIOException {
 		try {
-			driveService.permissions().delete(teamDrive.getId(), permission.getId());
+			driveService.permissions().delete(teamDrive.getId(), permission.getId())
+					.setUseDomainAdminAccess(true)
+					.setSupportsTeamDrives(true)
+					.execute();
 			log.debug("Deleting TeamDrive Permission: {} ", permission.getId());
 		} catch (IOException ex) {
 			throw new GoogleGroupsIOException("Something went wrong while deleting team drive permission", ex);

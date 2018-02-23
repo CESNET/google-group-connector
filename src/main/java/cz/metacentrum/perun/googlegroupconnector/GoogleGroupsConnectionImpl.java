@@ -43,7 +43,7 @@ public class GoogleGroupsConnectionImpl implements GoogleGroupsConnection {
 	private static String SERVICE_ACCOUNT_EMAIL;
 
 	// email of the User that Application will work behalf on.
-	private static String USER_EMAIL;
+	protected static String USER_EMAIL;
 
 	// scopes required by the application
 	private static List<String> SCOPES;
