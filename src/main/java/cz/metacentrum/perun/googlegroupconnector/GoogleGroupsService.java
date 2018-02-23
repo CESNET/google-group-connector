@@ -2,9 +2,11 @@ package cz.metacentrum.perun.googlegroupconnector;
 
 import com.google.api.services.admin.directory.model.Group;
 import com.google.api.services.admin.directory.model.User;
+import com.google.api.services.drive.model.TeamDrive;
 import cz.metacentrum.perun.googlegroupconnector.exceptions.GoogleGroupsIOException;
 import java.io.File;
 import java.util.List;
+import java.util.Map;
 
 /**
  * GoogleGroupsService represents google_groups service for Perun.
@@ -36,6 +38,17 @@ public interface GoogleGroupsService {
 	List<Group> parseGroupsFile(File groupsFile);
 
 	/**
+	 * Parse input file to pair of TeamDrive and list of Users who belong to team of G Suite domain.
+	 * Format is:
+	 *
+	 * identifier of TeamDrive(name);mails of team members split by commas
+	 *
+	 * @param teamDriveFile CSV input file
+	 * @return Pair of TeamDrive and List of Users(team members)
+	 */
+	Map<TeamDrive, List<User>> parseTeamDrivesFile(File teamDriveFile);
+
+	/**
 	 * Propagates changes in users from Perun to G Suite domain.
 	 *
 	 * @param users List of Users from Perun
@@ -62,5 +75,26 @@ public interface GoogleGroupsService {
 	 * @return TRUE = group members changed / group members unchanged
 	 */
 	boolean processGroupMembers(Group group) throws GoogleGroupsIOException;
+
+
+	/**
+	 * Propagates changes in team drives from Perun to G Suite domain.
+	 *
+	 * @param driveWithMembers List of team drives and users from Perun
+	 * @throws GoogleGroupsIOException when IOException is thrown while
+	 *                                 inserting/getting/deleting objects into/from G Suite.
+	 */
+	void processTeamDrives(Map<TeamDrive, List<User>> driveWithMembers) throws GoogleGroupsIOException, InterruptedException;
+
+	/**
+	 * Propagates changes in TeamDrive Permissions for its users from Perun to G Suite domain.
+	 * TeamDrive must be retrieved from domain in order to contain ID.
+	 *
+	 * @param teamDrive TeamDrive to process (with ID set !!)
+	 * @param users Users to process
+	 * @throws GoogleGroupsIOException when IOException is thrown while
+	 *                                 creating/deleting permissions into/from G Suite.
+	 */
+	void processTeamDrivePermissions(TeamDrive teamDrive, List<User> users) throws GoogleGroupsIOException;
 
 }

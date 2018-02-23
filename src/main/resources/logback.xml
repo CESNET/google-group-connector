@@ -50,11 +50,11 @@
 	-->
 
 	<!-- the main logger and its level -->
-	<root level="warn">
+	<root level="trace">
 		<!--<appender-ref ref="main"/>-->
 		<appender-ref ref="STDOUT"/>
 	</root>
 
-	<logger name="cz.metacentrum.perun.googlegroupconnector" level="info"/>
+	<logger name="cz.metacentrum.perun.googlegroupconnector" level="trace"/>
 
 </configuration>

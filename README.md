@@ -24,6 +24,8 @@ Secondly, generate your P12 key in your Developers Console.
 
 Thirdly, set your API Scopes according to [this guide](https://developers.google.com/identity/protocols/OAuth2ServiceAccount#delegatingauthority) to be able to access Google Groups data via service account. Otherwise, you will get `Insufficient Permission Exception`.
 
+If you wish to use Drive API, please enable it in developer console. Just adding scopes is not sufficient.
+
 ### Create necessary files
 
 Properties file is necessary for successful execution of the application. Name your properties file according to your domain name. E.g. if your domain name is **domain.org** then your properties file would be named like this:
@@ -52,7 +54,7 @@ allow_delete=false
 
 ## Usage
 
-Based on desired action, you must prepare CSV file splitted by `;` containing either domain users or groups and their members. You will then pass it to the main class as its argument. 
+Based on desired action, you must prepare CSV file splitted by `;` containing either domain users, groups and their members or teamDrives and their users. You will then pass it to the main class as its argument. 
 
 #### Users.csv example
 
@@ -86,12 +88,29 @@ Based on properties file config Member identifier is either primaryMail or ID.
 For managing users and groups together using 'email' as Member identifier is suggested, since this connector doesn't retrieve User IDs back from G Suite.
 For managing only groups (filled with public google accounts outside your domain) you can use IDs as provided by their Google Identity registered in Perun.
 
+#### TeamDrives.csv example
+
+Format is: `name; primaryMails`
+
+```bash
+TeamDriveNameOne; user1@domain.org,user2@domain.org
+TeamDriveNameTwo;
+```
+
+TeamDrives are identified by their name. TeamDrive users are updated if changed.
+User identifier is just primaryMail. Every User has equal permission with full access as organizer.
+
+For managing users in teamDrives is enough to update input file. For new Users will be created new Permission.
+Users missing in input file are suspended by default.
+TeamDrives missing in input file are suspended by default.
+
+
 #### Execution
 
 Main class of the application needs input arguments for successful execution. 
 First argument is your domain name. 
-Second argument is type of action: "users" or "groups".
-Third argument is path to CSV file (users or groups - depending on action)
+Second argument is type of action: "users", "groups" or "teamDrives".
+Third argument is path to CSV file (users, groups or teamDrives - depending on action)
 
 ```
 java -jar ./GoogleGroupConnector-2.0.0.jar DOMAIN ACTION PATH_TO_CSV_FILE
