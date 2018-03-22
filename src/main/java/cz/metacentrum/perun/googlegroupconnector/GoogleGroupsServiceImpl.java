@@ -936,9 +936,14 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 
 				if (perunDrive == null) {
 
-					// delete domain drive (not found from Perun)
-					deleteTeamDrive(domainDrive);
-					teamDrivesDeleted++;
+					if (Boolean.getBoolean(properties.getProperty("allow_delete_teamdrive", "false"))) {
+						// delete domain drive (not found from Perun)
+						deleteTeamDrive(domainDrive);
+						teamDrivesDeleted++;
+					} else {
+						// keep teamdrive but remove all permissions
+						processTeamDrivePermissions(domainDrive, new ArrayList<>());
+					}
 
 				}
 			}

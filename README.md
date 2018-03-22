@@ -40,6 +40,7 @@ After creating properties file, add following properties in it:
 * `scopes` list of scopes allowed for your service account necessary to perform expected changes
 * `member_identifier` type of identifier you use in input files to identifier user
 * `allow_delete` true/false value determine, if users missing in input file are deleted from domain or just suspended
+* `allow_delete_teamdrive` true/false value determine, if TeamDrive is deleted when missing in input file or just all permissions are removed
 
 Your properties file should look like this:
 
