@@ -979,7 +979,8 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 			for (User user : users) {
 				boolean notInDrive = true;
 				for (Permission permission : permissions) {
-					if (Objects.equals(user.getPrimaryEmail(), permission.getEmailAddress())) {
+					// compare mails with ignore case
+					if (permission.getEmailAddress().equalsIgnoreCase(user.getPrimaryEmail())) {
 						notInDrive = false;
 						break;
 					}
@@ -995,14 +996,14 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 			for (Permission permission : permissions) {
 				boolean notInPerun = true;
 				for (User user : users) {
-					if (Objects.equals(user.getPrimaryEmail(), permission.getEmailAddress())) {
+					if (permission.getEmailAddress().equalsIgnoreCase(user.getPrimaryEmail())) {
 						notInPerun = false;
 						break;
 					}
 				}
 
 				// remove missing user -> never remove service-account permission
-				if (notInPerun && !Objects.equals(GoogleGroupsConnectionImpl.USER_EMAIL, permission.getEmailAddress())) {
+				if (notInPerun && !GoogleGroupsConnectionImpl.USER_EMAIL.equalsIgnoreCase(permission.getEmailAddress())) {
 					deletePermission(teamDrive, permission);
 					teamDriveUsersDeleted++;
 				}
