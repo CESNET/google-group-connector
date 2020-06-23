@@ -4,6 +4,9 @@ import com.google.api.services.admin.directory.model.UserName;
 import com.google.api.services.drive.Drive;
 import com.google.api.services.drive.model.Permission;
 import com.google.api.services.drive.model.PermissionList;
+import com.opencsv.CSVParserBuilder;
+import com.opencsv.CSVReaderBuilder;
+import com.opencsv.exceptions.CsvException;
 import cz.metacentrum.perun.googlegroupconnector.exceptions.GoogleGroupsIOException;
 import com.google.api.services.admin.directory.Directory;
 import com.google.api.services.admin.directory.model.Group;
@@ -174,9 +177,7 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 		try {
 
 			fileReader = new FileReader(usersFile);
-
-			char separator = ';';
-			CSVReader reader = new CSVReader(fileReader, separator);
+			CSVReader reader = createCSVReader(fileReader);
 
 			List<String[]> lines = reader.readAll();
 			if (lines != null && !lines.isEmpty()) {
@@ -238,6 +239,8 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 			log.error("Users file {} was not found: {}", usersFile.getAbsolutePath(), ex);
 		} catch (IOException ex) {
 			log.error("Problem with I/O operation while reading lines of file {} by FileReader.readNext() or getting file: {}", usersFile.getAbsolutePath(), ex);
+		} catch (CsvException ex) {
+			log.error("Users file {} is invalid CSV. ", usersFile.getAbsolutePath(), ex);
 		} finally {
 			try {
 				if (fileReader != null) fileReader.close();
@@ -259,8 +262,7 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 
 			fileReader = new FileReader(groupsFile);
 
-			char separator = ';';
-			CSVReader reader = new CSVReader(fileReader, separator);
+			CSVReader reader = createCSVReader(fileReader);
 
 			List<String[]> lines = reader.readAll();
 			if (lines != null && !lines.isEmpty()) {
@@ -305,6 +307,8 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 			log.error("Groups  file {} was not found: {}", groupsFile.getAbsolutePath(), ex);
 		} catch (IOException ex) {
 			log.error("Problem with I/O operation while reading lines of file {} by FileReader.readNext() or getting file: {}", groupsFile.getAbsolutePath(), ex);
+		} catch (CsvException ex) {
+			log.error("Groups file {} is invalid CSV. ", groupsFile.getAbsolutePath(), ex);
 		} finally {
 			try {
 				if (fileReader != null) fileReader.close();
@@ -327,8 +331,7 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 
 			fileReader = new FileReader(teamDriveFile);
 
-			char separator = ';';
-			CSVReader reader = new CSVReader(fileReader, separator);
+			CSVReader reader = createCSVReader(fileReader);
 
 			List<String[]> lines = reader.readAll();
 			if (lines != null && !lines.isEmpty()) {
@@ -365,6 +368,8 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 			}
 		} catch (IOException ex) {
 			log.error("Problem with I/O operation while reading lines of file {} by FileReader.readNext() or getting file: {}", teamDriveFile.getAbsolutePath(), ex);
+		} catch (CsvException ex) {
+			log.error("TeamDrive file {} is invalid CSV. ", teamDriveFile.getAbsolutePath(), ex);
 		} finally {
 			try {
 				if (fileReader != null) fileReader.close();
@@ -1175,6 +1180,23 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 		} catch (IOException ex) {
 			throw new GoogleGroupsIOException("Something went wrong while deleting team drive permission", ex);
 		}
+	}
+
+	/**
+	 * Create custom CSVReader for the passed FileReader, where separator is ';'
+	 *
+	 * @param fileReader file to be read
+	 * @return CSVReader
+	 */
+	private CSVReader createCSVReader(FileReader fileReader) {
+
+		char separator = ';';
+		CSVReaderBuilder csvReaderBuilder = new CSVReaderBuilder(fileReader);
+		CSVParserBuilder csvParserBuilder = new CSVParserBuilder();
+		csvParserBuilder.withSeparator(separator);
+		csvReaderBuilder.withCSVParser(csvParserBuilder.build());
+		return csvReaderBuilder.build();
+
 	}
 
 }
