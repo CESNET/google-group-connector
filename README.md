@@ -41,6 +41,7 @@ After creating properties file, add following properties in it:
 * `member_identifier` type of identifier you use in input files to identifier user
 * `allow_delete` true/false value determine, if users missing in input file are deleted from domain or just suspended
 * `allow_delete_teamdrive` true/false value determine, if TeamDrive is deleted when missing in input file or just all permissions are removed
+* `dry_run` true/false value determine, if this tool performs only READ or READ/WRITE operations with Gooogle API. If true, WRITE actions are logged, but not actually performed.
 
 Your properties file should look like this:
 
@@ -51,6 +52,7 @@ service_account_pkcs12_file_path=/etc/perun/name_of_your_p12_file
 scopes=https://www.googleapis.com/auth/admin.directory.group,https://www.googleapis.com/auth/admin.directory.orgunit,https://www.googleapis.com/auth/admin.directory.user,https://www.googleapis.com/auth/groups,https://www.googleapis.com/auth/userinfo.email
 member_identifier=id
 allow_delete=false
+dry_run=false
 ```
 
 ## Usage

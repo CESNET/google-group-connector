@@ -63,6 +63,8 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 	private static int teamDriveUsersAdded = 0;
 	private static int teamDriveUsersDeleted = 0;
 
+	private static boolean dryRun = false;
+
 
 	/**
 	 * Main method starting (de)provisioning of G Suite on your domain.
@@ -110,6 +112,9 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 			GoogleGroupsServiceImpl session = new GoogleGroupsServiceImpl();
 			session.domainName = connection.getDomainName();
 			session.properties = connection.getProperties();
+			dryRun = Boolean.parseBoolean(session.properties.getProperty("dry_run", "false"));
+
+			if (dryRun) System.out.println("========== DRY RUN ==========\n* Only READ operations with Google API are done.\n* WRITE operations are not actually called, but only logged.\n=============================");
 
 			switch (action) {
 				case "users":
@@ -705,7 +710,7 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 	 */
 	private void insertGroup(Group group) throws GoogleGroupsIOException {
 		try {
-			service.groups().insert(group).execute();
+			if (!dryRun) service.groups().insert(group).execute();
 			log.debug("Creating group: {}", group);
 		} catch (IOException ex) {
 			throw new GoogleGroupsIOException("Something went wrong while inserting group " + group.getEmail() + " to Google Groups", ex);
@@ -720,7 +725,7 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 	 */
 	private void deleteGroup(String email) throws GoogleGroupsIOException {
 		try {
-			service.groups().delete(email).execute();
+			if (!dryRun) service.groups().delete(email).execute();
 			log.debug("Deleting group: {}", email);
 		} catch (IOException ex) {
 			throw new GoogleGroupsIOException("Something went wrong while deleting group " + email + " from Google Groups", ex);
@@ -736,7 +741,7 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 	 */
 	private void updateGroup(String groupKey, Group group) throws GoogleGroupsIOException {
 		try {
-			service.groups().update(groupKey, group).execute();
+			if (!dryRun) service.groups().update(groupKey, group).execute();
 			log.debug("Updating group: {}", group);
 		} catch (IOException ex) {
 			throw new GoogleGroupsIOException("Something went wrong while updating group " + group.getEmail() + " in Google Groups", ex);
@@ -783,7 +788,7 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 			String randomStr = RandomStringUtils.random( 40, 0, possibleCharacters.length-1, false, false, possibleCharacters, new SecureRandom());
 			user.setPassword(randomStr);
 
-			service.users().insert(user).execute();
+			if (!dryRun) service.users().insert(user).execute();
 			log.debug("Creating user: {}", user);
 		} catch (IOException ex) {
 			throw new GoogleGroupsIOException("Something went wrong while inserting user " + user.getPrimaryEmail() + " to Google Groups", ex);
@@ -798,7 +803,7 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 	 */
 	private void deleteUser(String userKey) throws GoogleGroupsIOException {
 		try {
-			service.users().delete(userKey).execute();
+			if (!dryRun) service.users().delete(userKey).execute();
 			log.debug("Deleting user: {}", userKey);
 		} catch (IOException ex) {
 			throw new GoogleGroupsIOException("Something went wrong while deleting user " + userKey + " from Google Groups", ex);
@@ -814,7 +819,7 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 	 */
 	private void updateUser(String userKey, User user) throws GoogleGroupsIOException {
 		try {
-			service.users().update(userKey, user).execute();
+			if (!dryRun) service.users().update(userKey, user).execute();
 			log.debug("Updating user: {}", user);
 		} catch (IOException ex) {
 			throw new GoogleGroupsIOException("Something went wrong while updating user " + user.getPrimaryEmail() + " in Google Groups", ex);
@@ -855,7 +860,7 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 	 */
 	private void insertMember(String groupName, Member member) throws GoogleGroupsIOException {
 		try {
-			service.members().insert(groupName, member).execute();
+			if (!dryRun) service.members().insert(groupName, member).execute();
 			String memberIdType = properties.getProperty("member_identifier", "id");
 
 			if (Objects.equals("id", memberIdType)) {
@@ -878,7 +883,7 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 	 */
 	private void deleteMember(String groupName, String memberId) throws GoogleGroupsIOException {
 		try {
-			service.members().delete(groupName, memberId).execute();
+			if (!dryRun) service.members().delete(groupName, memberId).execute();
 			log.debug("Deleting member: {} from group: {}", memberId, groupName);
 		} catch (IOException ex) {
 			throw new GoogleGroupsIOException("Something went wrong while deleting member with ID " + memberId + " from group " + groupName + " in Google Groups", ex);
@@ -1109,9 +1114,11 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 			TeamDrive teamDriveMetaData = new TeamDrive();
 			teamDriveMetaData.setName(teamDrive.getName());
 			String requestId = UUID.randomUUID().toString();
-			TeamDrive returnedTeamDrive = driveService.teamdrives().create(requestId, teamDriveMetaData).execute();
-			// push back new object IDs so we can
-			teamDrive.setId(returnedTeamDrive.getId());
+			if (!dryRun) {
+				TeamDrive returnedTeamDrive = driveService.teamdrives().create(requestId, teamDriveMetaData).execute();
+				// push back new object IDs so we can
+				teamDrive.setId(returnedTeamDrive.getId());
+			}
 			log.debug("Creating TeamDrive: {}", teamDrive);
 		} catch (IOException ex) {
 			throw new GoogleGroupsIOException("Something went wrong while inserting new team drive", ex);
@@ -1127,7 +1134,7 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 	private void deleteTeamDrive(TeamDrive teamDrive) throws GoogleGroupsIOException {
 		try {
 			String key = teamDrive.getId();
-			driveService.teamdrives().delete(teamDrive.getId());
+			if (!dryRun) driveService.teamdrives().delete(teamDrive.getId());
 			log.debug("Deleting TeamDrive: {} ", key);
 		} catch (IOException ex) {
 			throw new GoogleGroupsIOException("Something went wrong while deleting team drive", ex);
@@ -1149,13 +1156,17 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 				.setEmailAddress(user.getPrimaryEmail());
 
 		try {
-			Permission result = driveService.permissions()
-					.create(teamDrive.getId(), newOrganizerPermission)
-					.setUseDomainAdminAccess(true)
-					.setSupportsTeamDrives(true)
-					.setFields("id")
-					.execute();
-			log.debug("Creating TeamDrive Permission: {} ", result);
+			if (!dryRun) {
+				Permission result = driveService.permissions()
+						.create(teamDrive.getId(), newOrganizerPermission)
+						.setUseDomainAdminAccess(true)
+						.setSupportsTeamDrives(true)
+						.setFields("id")
+						.execute();
+				log.debug("Creating TeamDrive Permission: {} ", result);
+			} else {
+				log.debug("Creating TeamDrive Permission: {} ", newOrganizerPermission);
+			}
 		} catch (IOException ex) {
 			throw new GoogleGroupsIOException("Something went wrong while creating new permission: " + newOrganizerPermission, ex);
 		}
@@ -1170,10 +1181,12 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 	 */
 	private void deletePermission(TeamDrive teamDrive, Permission permission) throws GoogleGroupsIOException {
 		try {
-			driveService.permissions().delete(teamDrive.getId(), permission.getId())
-					.setUseDomainAdminAccess(true)
-					.setSupportsTeamDrives(true)
-					.execute();
+			if (!dryRun) {
+				driveService.permissions().delete(teamDrive.getId(), permission.getId())
+						.setUseDomainAdminAccess(true)
+						.setSupportsTeamDrives(true)
+						.execute();
+			}
 			log.debug("Deleting TeamDrive Permission: {} ", permission.getId());
 		} catch (IOException ex) {
 			throw new GoogleGroupsIOException("Something went wrong while deleting team drive permission", ex);
