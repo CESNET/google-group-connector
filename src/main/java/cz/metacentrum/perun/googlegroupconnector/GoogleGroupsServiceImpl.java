@@ -4,6 +4,9 @@ import com.google.api.services.admin.directory.model.UserName;
 import com.google.api.services.drive.Drive;
 import com.google.api.services.drive.model.Permission;
 import com.google.api.services.drive.model.PermissionList;
+import com.opencsv.CSVParserBuilder;
+import com.opencsv.CSVReaderBuilder;
+import com.opencsv.exceptions.CsvException;
 import cz.metacentrum.perun.googlegroupconnector.exceptions.GoogleGroupsIOException;
 import com.google.api.services.admin.directory.Directory;
 import com.google.api.services.admin.directory.model.Group;
@@ -25,6 +28,7 @@ import java.security.SecureRandom;
 import java.util.*;
 
 import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.LoggerFactory;
 
 /**
@@ -44,7 +48,7 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 	private static Drive driveService;
 	private String domainName;
 	private Properties properties;
-	private Map<String, List<String>> groupsMembers = new HashMap<>();
+	private final Map<String, List<String>> groupsMembers = new HashMap<>();
 
 	private static int usersInserted = 0;
 	private static int usersUpdated = 0;
@@ -58,6 +62,8 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 	private static int teamDrivesDeleted = 0;
 	private static int teamDriveUsersAdded = 0;
 	private static int teamDriveUsersDeleted = 0;
+
+	private static boolean dryRun = false;
 
 
 	/**
@@ -106,6 +112,9 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 			GoogleGroupsServiceImpl session = new GoogleGroupsServiceImpl();
 			session.domainName = connection.getDomainName();
 			session.properties = connection.getProperties();
+			dryRun = Boolean.parseBoolean(session.properties.getProperty("dry_run", "false"));
+
+			if (dryRun) System.out.println("========== DRY RUN ==========\n* Only READ operations with Google API are done.\n* WRITE operations are not actually called, but only logged.\n=============================");
 
 			switch (action) {
 				case "users":
@@ -174,9 +183,7 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 		try {
 
 			fileReader = new FileReader(usersFile);
-
-			char separator = ';';
-			CSVReader reader = new CSVReader(fileReader, separator);
+			CSVReader reader = createCSVReader(fileReader);
 
 			List<String[]> lines = reader.readAll();
 			if (lines != null && !lines.isEmpty()) {
@@ -184,7 +191,7 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 				for (String[] line : lines) {
 
 					if (line.length < 4) {
-						log.error("Users file contains row with less than 4 columns: {}", line);
+						log.error("Users file contains row with less than 4 columns: {}", (Object) line);
 						throw new IllegalArgumentException("Users file contains row with less than 4 columns:" + line[0]);
 					}
 
@@ -238,6 +245,8 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 			log.error("Users file {} was not found: {}", usersFile.getAbsolutePath(), ex);
 		} catch (IOException ex) {
 			log.error("Problem with I/O operation while reading lines of file {} by FileReader.readNext() or getting file: {}", usersFile.getAbsolutePath(), ex);
+		} catch (CsvException ex) {
+			log.error("Users file {} is invalid CSV. ", usersFile.getAbsolutePath(), ex);
 		} finally {
 			try {
 				if (fileReader != null) fileReader.close();
@@ -259,8 +268,7 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 
 			fileReader = new FileReader(groupsFile);
 
-			char separator = ';';
-			CSVReader reader = new CSVReader(fileReader, separator);
+			CSVReader reader = createCSVReader(fileReader);
 
 			List<String[]> lines = reader.readAll();
 			if (lines != null && !lines.isEmpty()) {
@@ -268,7 +276,7 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 				for (String[] line : lines) {
 
 					if (line.length < 3) {
-						log.error("Groups file contains row with less than 3 columns: {}", line);
+						log.error("Groups file contains row with less than 3 columns: {}", (Object) line);
 						throw new IllegalArgumentException("Groups file contains row with less than 3 columns:" + line[0]);
 					}
 
@@ -305,6 +313,8 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 			log.error("Groups  file {} was not found: {}", groupsFile.getAbsolutePath(), ex);
 		} catch (IOException ex) {
 			log.error("Problem with I/O operation while reading lines of file {} by FileReader.readNext() or getting file: {}", groupsFile.getAbsolutePath(), ex);
+		} catch (CsvException ex) {
+			log.error("Groups file {} is invalid CSV. ", groupsFile.getAbsolutePath(), ex);
 		} finally {
 			try {
 				if (fileReader != null) fileReader.close();
@@ -327,8 +337,7 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 
 			fileReader = new FileReader(teamDriveFile);
 
-			char separator = ';';
-			CSVReader reader = new CSVReader(fileReader, separator);
+			CSVReader reader = createCSVReader(fileReader);
 
 			List<String[]> lines = reader.readAll();
 			if (lines != null && !lines.isEmpty()) {
@@ -336,7 +345,7 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 				for (String[] line : lines) {
 
 					if (line.length < 2) {
-						log.error("TeamDrive file contains row with less than 2 columns: {}", line);
+						log.error("TeamDrive file contains row with less than 2 columns: {}", (Object) line);
 						throw new IllegalArgumentException("TeamDrive file contains row with less than 3 columns:" + line[0]);
 					}
 
@@ -346,7 +355,7 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 					teamDriveResult.setName(line[0]);
 
 					if (line[1] != null && !line[1].isEmpty()) {
-						List<String> membersEmail = Arrays.asList(line[1].split(","));
+						String[] membersEmail = line[1].split(",");
 						for (String userMail : membersEmail) {
 							userMail = userMail.replaceAll("\\s+", "");
 							User user = new User();
@@ -365,6 +374,8 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 			}
 		} catch (IOException ex) {
 			log.error("Problem with I/O operation while reading lines of file {} by FileReader.readNext() or getting file: {}", teamDriveFile.getAbsolutePath(), ex);
+		} catch (CsvException ex) {
+			log.error("TeamDrive file {} is invalid CSV. ", teamDriveFile.getAbsolutePath(), ex);
 		} finally {
 			try {
 				if (fileReader != null) fileReader.close();
@@ -378,12 +389,11 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 	@Override
 	public void processUsers(List<User> users) throws GoogleGroupsIOException {
 
-		List<User> domainUsers = new ArrayList<>();
 		Users du = getDomainUsers(domainName);
 		if (du != null && !du.isEmpty() && du.getUsers() != null && !du.getUsers().isEmpty()) {
 
 			// domain is not empty, compare state
-			domainUsers.addAll(du.getUsers());
+			List<User> domainUsers = new ArrayList<>(du.getUsers());
 
 			for (User user : users) {
 				User domainUser = null;
@@ -476,12 +486,11 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 	@Override
 	public void processGroups(List<Group> groups) throws GoogleGroupsIOException, InterruptedException {
 
-		List<Group> domainGroups = new ArrayList<>();
 		Groups dg = getDomainGroups(domainName);
 		if (dg != null && !dg.isEmpty() && dg.getGroups() != null && !dg.getGroups().isEmpty()) {
 
 			// domain is not empty, compare state
-			domainGroups.addAll(dg.getGroups());
+			List<Group> domainGroups = new ArrayList<>(dg.getGroups());
 
 			for (Group group : groups) {
 				Group domainGroup = null;
@@ -585,11 +594,10 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 		}
 
 		Members dgm = getGroupsMembers(group.getEmail());
-		List<Member> domainGroupMembers = new ArrayList<>();
 		if (dgm != null && !dgm.isEmpty() && dgm.getMembers() != null && !dgm.getMembers().isEmpty()) {
 
 			// domain group is not empty, compare state
-			domainGroupMembers.addAll(dgm.getMembers());
+			List<Member> domainGroupMembers = new ArrayList<>(dgm.getMembers());
 
 			for (String perunMemberId : groupsMembers.get(group.getEmail())) {
 
@@ -702,7 +710,7 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 	 */
 	private void insertGroup(Group group) throws GoogleGroupsIOException {
 		try {
-			service.groups().insert(group).execute();
+			if (!dryRun) service.groups().insert(group).execute();
 			log.debug("Creating group: {}", group);
 		} catch (IOException ex) {
 			throw new GoogleGroupsIOException("Something went wrong while inserting group " + group.getEmail() + " to Google Groups", ex);
@@ -717,7 +725,7 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 	 */
 	private void deleteGroup(String email) throws GoogleGroupsIOException {
 		try {
-			service.groups().delete(email).execute();
+			if (!dryRun) service.groups().delete(email).execute();
 			log.debug("Deleting group: {}", email);
 		} catch (IOException ex) {
 			throw new GoogleGroupsIOException("Something went wrong while deleting group " + email + " from Google Groups", ex);
@@ -733,7 +741,7 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 	 */
 	private void updateGroup(String groupKey, Group group) throws GoogleGroupsIOException {
 		try {
-			service.groups().update(groupKey, group).execute();
+			if (!dryRun) service.groups().update(groupKey, group).execute();
 			log.debug("Updating group: {}", group);
 		} catch (IOException ex) {
 			throw new GoogleGroupsIOException("Something went wrong while updating group " + group.getEmail() + " in Google Groups", ex);
@@ -776,11 +784,11 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 		try {
 
 			// give users random passwords needed for creation
-			char[] possibleCharacters = ("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789~`!@#$%^&*()-_=+[{]}\\|;:\'\",<.>/?").toCharArray();
+			char[] possibleCharacters = ("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789~`!@#$%^&*()-_=+[{]}\\|;:'\",<.>/?").toCharArray();
 			String randomStr = RandomStringUtils.random( 40, 0, possibleCharacters.length-1, false, false, possibleCharacters, new SecureRandom());
 			user.setPassword(randomStr);
 
-			service.users().insert(user).execute();
+			if (!dryRun) service.users().insert(user).execute();
 			log.debug("Creating user: {}", user);
 		} catch (IOException ex) {
 			throw new GoogleGroupsIOException("Something went wrong while inserting user " + user.getPrimaryEmail() + " to Google Groups", ex);
@@ -795,7 +803,7 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 	 */
 	private void deleteUser(String userKey) throws GoogleGroupsIOException {
 		try {
-			service.users().delete(userKey).execute();
+			if (!dryRun) service.users().delete(userKey).execute();
 			log.debug("Deleting user: {}", userKey);
 		} catch (IOException ex) {
 			throw new GoogleGroupsIOException("Something went wrong while deleting user " + userKey + " from Google Groups", ex);
@@ -811,7 +819,7 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 	 */
 	private void updateUser(String userKey, User user) throws GoogleGroupsIOException {
 		try {
-			service.users().update(userKey, user).execute();
+			if (!dryRun) service.users().update(userKey, user).execute();
 			log.debug("Updating user: {}", user);
 		} catch (IOException ex) {
 			throw new GoogleGroupsIOException("Something went wrong while updating user " + user.getPrimaryEmail() + " in Google Groups", ex);
@@ -852,7 +860,7 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 	 */
 	private void insertMember(String groupName, Member member) throws GoogleGroupsIOException {
 		try {
-			service.members().insert(groupName, member).execute();
+			if (!dryRun) service.members().insert(groupName, member).execute();
 			String memberIdType = properties.getProperty("member_identifier", "id");
 
 			if (Objects.equals("id", memberIdType)) {
@@ -875,7 +883,7 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 	 */
 	private void deleteMember(String groupName, String memberId) throws GoogleGroupsIOException {
 		try {
-			service.members().delete(groupName, memberId).execute();
+			if (!dryRun) service.members().delete(groupName, memberId).execute();
 			log.debug("Deleting member: {} from group: {}", memberId, groupName);
 		} catch (IOException ex) {
 			throw new GoogleGroupsIOException("Something went wrong while deleting member with ID " + memberId + " from group " + groupName + " in Google Groups", ex);
@@ -979,7 +987,7 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 			for (User user : users) {
 				boolean notInDrive = true;
 				for (Permission permission : permissions) {
-					if (Objects.equals(user.getPrimaryEmail(), permission.getEmailAddress())) {
+					if (StringUtils.equalsIgnoreCase(user.getPrimaryEmail(), permission.getEmailAddress())) {
 						notInDrive = false;
 						break;
 					}
@@ -995,14 +1003,14 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 			for (Permission permission : permissions) {
 				boolean notInPerun = true;
 				for (User user : users) {
-					if (Objects.equals(user.getPrimaryEmail(), permission.getEmailAddress())) {
+					if (StringUtils.equalsIgnoreCase(user.getPrimaryEmail(), permission.getEmailAddress())) {
 						notInPerun = false;
 						break;
 					}
 				}
 
 				// remove missing user -> never remove service-account permission
-				if (notInPerun && !Objects.equals(GoogleGroupsConnectionImpl.USER_EMAIL, permission.getEmailAddress())) {
+				if (notInPerun && !StringUtils.equalsIgnoreCase(GoogleGroupsConnectionImpl.USER_EMAIL, permission.getEmailAddress())) {
 					deletePermission(teamDrive, permission);
 					teamDriveUsersDeleted++;
 				}
@@ -1106,9 +1114,11 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 			TeamDrive teamDriveMetaData = new TeamDrive();
 			teamDriveMetaData.setName(teamDrive.getName());
 			String requestId = UUID.randomUUID().toString();
-			TeamDrive returnedTeamDrive = driveService.teamdrives().create(requestId, teamDriveMetaData).execute();
-			// push back new object IDs so we can
-			teamDrive.setId(returnedTeamDrive.getId());
+			if (!dryRun) {
+				TeamDrive returnedTeamDrive = driveService.teamdrives().create(requestId, teamDriveMetaData).execute();
+				// push back new object IDs so we can
+				teamDrive.setId(returnedTeamDrive.getId());
+			}
 			log.debug("Creating TeamDrive: {}", teamDrive);
 		} catch (IOException ex) {
 			throw new GoogleGroupsIOException("Something went wrong while inserting new team drive", ex);
@@ -1124,7 +1134,7 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 	private void deleteTeamDrive(TeamDrive teamDrive) throws GoogleGroupsIOException {
 		try {
 			String key = teamDrive.getId();
-			driveService.teamdrives().delete(teamDrive.getId());
+			if (!dryRun) driveService.teamdrives().delete(teamDrive.getId());
 			log.debug("Deleting TeamDrive: {} ", key);
 		} catch (IOException ex) {
 			throw new GoogleGroupsIOException("Something went wrong while deleting team drive", ex);
@@ -1146,13 +1156,17 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 				.setEmailAddress(user.getPrimaryEmail());
 
 		try {
-			Permission result = driveService.permissions()
-					.create(teamDrive.getId(), newOrganizerPermission)
-					.setUseDomainAdminAccess(true)
-					.setSupportsTeamDrives(true)
-					.setFields("id")
-					.execute();
-			log.debug("Creating TeamDrive Permission: {} ", result);
+			if (!dryRun) {
+				Permission result = driveService.permissions()
+						.create(teamDrive.getId(), newOrganizerPermission)
+						.setUseDomainAdminAccess(true)
+						.setSupportsTeamDrives(true)
+						.setFields("id")
+						.execute();
+				log.debug("Creating TeamDrive Permission: {} ", result);
+			} else {
+				log.debug("Creating TeamDrive Permission: {} ", newOrganizerPermission);
+			}
 		} catch (IOException ex) {
 			throw new GoogleGroupsIOException("Something went wrong while creating new permission: " + newOrganizerPermission, ex);
 		}
@@ -1167,14 +1181,33 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 	 */
 	private void deletePermission(TeamDrive teamDrive, Permission permission) throws GoogleGroupsIOException {
 		try {
-			driveService.permissions().delete(teamDrive.getId(), permission.getId())
-					.setUseDomainAdminAccess(true)
-					.setSupportsTeamDrives(true)
-					.execute();
+			if (!dryRun) {
+				driveService.permissions().delete(teamDrive.getId(), permission.getId())
+						.setUseDomainAdminAccess(true)
+						.setSupportsTeamDrives(true)
+						.execute();
+			}
 			log.debug("Deleting TeamDrive Permission: {} ", permission.getId());
 		} catch (IOException ex) {
 			throw new GoogleGroupsIOException("Something went wrong while deleting team drive permission", ex);
 		}
+	}
+
+	/**
+	 * Create custom CSVReader for the passed FileReader, where separator is ';'
+	 *
+	 * @param fileReader file to be read
+	 * @return CSVReader
+	 */
+	private CSVReader createCSVReader(FileReader fileReader) {
+
+		char separator = ';';
+		CSVReaderBuilder csvReaderBuilder = new CSVReaderBuilder(fileReader);
+		CSVParserBuilder csvParserBuilder = new CSVParserBuilder();
+		csvParserBuilder.withSeparator(separator);
+		csvReaderBuilder.withCSVParser(csvParserBuilder.build());
+		return csvReaderBuilder.build();
+
 	}
 
 }

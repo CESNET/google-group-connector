@@ -32,9 +32,8 @@ public interface GoogleGroupsConnection {
 	 * Build and return an authorized Drive client service.
 	 *
 	 * @return an authorized Drive client service
-	 * @throws IOException
 	 */
-	Drive getDriveService() throws IOException;
+	Drive getDriveService();
 
 
 }
