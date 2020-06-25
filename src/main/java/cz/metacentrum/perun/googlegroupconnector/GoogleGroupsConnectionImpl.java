@@ -32,7 +32,6 @@ import org.slf4j.LoggerFactory;
  * email and user email filled in.
  *
  * @author Sona Mastrakova <sona.mastrakova@gmail.com>
- * @date 29.7.2015
  */
 public class GoogleGroupsConnectionImpl implements GoogleGroupsConnection {
 
@@ -73,7 +72,7 @@ public class GoogleGroupsConnectionImpl implements GoogleGroupsConnection {
 	}
 
 	@Override
-	public Drive getDriveService() throws IOException {
+	public Drive getDriveService() {
 		return new Drive.Builder(HTTP_TRANSPORT, JSON_FACTORY, authorize()).setApplicationName(APPLICATION_NAME).build();
 	}
 
@@ -125,7 +124,7 @@ public class GoogleGroupsConnectionImpl implements GoogleGroupsConnection {
 				try {
 					input.close();
 				} catch (IOException ex) {
-					log.error("Problem with I/O operation while closing file \'" + PROPERTIES_PATH + "\'.", ex);
+					log.error("Problem with I/O operation while closing file '" + PROPERTIES_PATH + "'.", ex);
 				}
 			}
 		}

@@ -28,6 +28,7 @@ import java.security.SecureRandom;
 import java.util.*;
 
 import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.LoggerFactory;
 
 /**
@@ -47,7 +48,7 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 	private static Drive driveService;
 	private String domainName;
 	private Properties properties;
-	private Map<String, List<String>> groupsMembers = new HashMap<>();
+	private final Map<String, List<String>> groupsMembers = new HashMap<>();
 
 	private static int usersInserted = 0;
 	private static int usersUpdated = 0;
@@ -185,7 +186,7 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 				for (String[] line : lines) {
 
 					if (line.length < 4) {
-						log.error("Users file contains row with less than 4 columns: {}", line);
+						log.error("Users file contains row with less than 4 columns: {}", (Object) line);
 						throw new IllegalArgumentException("Users file contains row with less than 4 columns:" + line[0]);
 					}
 
@@ -270,7 +271,7 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 				for (String[] line : lines) {
 
 					if (line.length < 3) {
-						log.error("Groups file contains row with less than 3 columns: {}", line);
+						log.error("Groups file contains row with less than 3 columns: {}", (Object) line);
 						throw new IllegalArgumentException("Groups file contains row with less than 3 columns:" + line[0]);
 					}
 
@@ -339,7 +340,7 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 				for (String[] line : lines) {
 
 					if (line.length < 2) {
-						log.error("TeamDrive file contains row with less than 2 columns: {}", line);
+						log.error("TeamDrive file contains row with less than 2 columns: {}", (Object) line);
 						throw new IllegalArgumentException("TeamDrive file contains row with less than 3 columns:" + line[0]);
 					}
 
@@ -349,7 +350,7 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 					teamDriveResult.setName(line[0]);
 
 					if (line[1] != null && !line[1].isEmpty()) {
-						List<String> membersEmail = Arrays.asList(line[1].split(","));
+						String[] membersEmail = line[1].split(",");
 						for (String userMail : membersEmail) {
 							userMail = userMail.replaceAll("\\s+", "");
 							User user = new User();
@@ -383,12 +384,11 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 	@Override
 	public void processUsers(List<User> users) throws GoogleGroupsIOException {
 
-		List<User> domainUsers = new ArrayList<>();
 		Users du = getDomainUsers(domainName);
 		if (du != null && !du.isEmpty() && du.getUsers() != null && !du.getUsers().isEmpty()) {
 
 			// domain is not empty, compare state
-			domainUsers.addAll(du.getUsers());
+			List<User> domainUsers = new ArrayList<>(du.getUsers());
 
 			for (User user : users) {
 				User domainUser = null;
@@ -481,12 +481,11 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 	@Override
 	public void processGroups(List<Group> groups) throws GoogleGroupsIOException, InterruptedException {
 
-		List<Group> domainGroups = new ArrayList<>();
 		Groups dg = getDomainGroups(domainName);
 		if (dg != null && !dg.isEmpty() && dg.getGroups() != null && !dg.getGroups().isEmpty()) {
 
 			// domain is not empty, compare state
-			domainGroups.addAll(dg.getGroups());
+			List<Group> domainGroups = new ArrayList<>(dg.getGroups());
 
 			for (Group group : groups) {
 				Group domainGroup = null;
@@ -590,11 +589,10 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 		}
 
 		Members dgm = getGroupsMembers(group.getEmail());
-		List<Member> domainGroupMembers = new ArrayList<>();
 		if (dgm != null && !dgm.isEmpty() && dgm.getMembers() != null && !dgm.getMembers().isEmpty()) {
 
 			// domain group is not empty, compare state
-			domainGroupMembers.addAll(dgm.getMembers());
+			List<Member> domainGroupMembers = new ArrayList<>(dgm.getMembers());
 
 			for (String perunMemberId : groupsMembers.get(group.getEmail())) {
 
@@ -781,7 +779,7 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 		try {
 
 			// give users random passwords needed for creation
-			char[] possibleCharacters = ("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789~`!@#$%^&*()-_=+[{]}\\|;:\'\",<.>/?").toCharArray();
+			char[] possibleCharacters = ("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789~`!@#$%^&*()-_=+[{]}\\|;:'\",<.>/?").toCharArray();
 			String randomStr = RandomStringUtils.random( 40, 0, possibleCharacters.length-1, false, false, possibleCharacters, new SecureRandom());
 			user.setPassword(randomStr);
 
@@ -984,7 +982,7 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 			for (User user : users) {
 				boolean notInDrive = true;
 				for (Permission permission : permissions) {
-					if (Objects.equals(user.getPrimaryEmail(), permission.getEmailAddress())) {
+					if (StringUtils.equalsIgnoreCase(user.getPrimaryEmail(), permission.getEmailAddress())) {
 						notInDrive = false;
 						break;
 					}
@@ -1000,14 +998,14 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 			for (Permission permission : permissions) {
 				boolean notInPerun = true;
 				for (User user : users) {
-					if (Objects.equals(user.getPrimaryEmail(), permission.getEmailAddress())) {
+					if (StringUtils.equalsIgnoreCase(user.getPrimaryEmail(), permission.getEmailAddress())) {
 						notInPerun = false;
 						break;
 					}
 				}
 
 				// remove missing user -> never remove service-account permission
-				if (notInPerun && !Objects.equals(GoogleGroupsConnectionImpl.USER_EMAIL, permission.getEmailAddress())) {
+				if (notInPerun && !StringUtils.equalsIgnoreCase(GoogleGroupsConnectionImpl.USER_EMAIL, permission.getEmailAddress())) {
 					deletePermission(teamDrive, permission);
 					teamDriveUsersDeleted++;
 				}
