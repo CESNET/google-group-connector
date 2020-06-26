@@ -142,7 +142,7 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 					}
 					System.out.println("Groups inserted: "+groupsInserted);
 					System.out.println("Groups updated: "+groupsUpdated);
-					System.out.println("Groups with updated members:"+groupsUpdatedMembers);
+					System.out.println("Groups with updated members: "+groupsUpdatedMembers);
 					System.out.println("Groups deleted: "+groupsDeleted);
 					return;
 
