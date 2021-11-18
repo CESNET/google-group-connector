@@ -1,6 +1,6 @@
 package cz.metacentrum.perun.googlegroupconnector;
 
-import com.google.api.services.admin.directory.model.UserName;
+import com.google.api.services.directory.model.UserName;
 import com.google.api.services.drive.Drive;
 import com.google.api.services.drive.model.Permission;
 import com.google.api.services.drive.model.PermissionList;
@@ -8,13 +8,13 @@ import com.opencsv.CSVParserBuilder;
 import com.opencsv.CSVReaderBuilder;
 import com.opencsv.exceptions.CsvException;
 import cz.metacentrum.perun.googlegroupconnector.exceptions.GoogleGroupsIOException;
-import com.google.api.services.admin.directory.Directory;
-import com.google.api.services.admin.directory.model.Group;
-import com.google.api.services.admin.directory.model.Groups;
-import com.google.api.services.admin.directory.model.Member;
-import com.google.api.services.admin.directory.model.Members;
-import com.google.api.services.admin.directory.model.User;
-import com.google.api.services.admin.directory.model.Users;
+import com.google.api.services.directory.Directory;
+import com.google.api.services.directory.model.Group;
+import com.google.api.services.directory.model.Groups;
+import com.google.api.services.directory.model.Member;
+import com.google.api.services.directory.model.Members;
+import com.google.api.services.directory.model.User;
+import com.google.api.services.directory.model.Users;
 import com.google.api.services.drive.model.TeamDriveList;
 import com.google.api.services.drive.model.TeamDrive;
 import com.opencsv.CSVReader;
