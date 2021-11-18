@@ -7,7 +7,6 @@ import com.google.api.client.http.HttpTransport;
 import com.google.api.client.json.jackson2.JacksonFactory;
 import com.google.api.client.json.JsonFactory;
 
-import com.google.api.services.admin.directory.Directory;
 
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -17,6 +16,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
 
+import com.google.api.services.directory.Directory;
 import com.google.api.services.drive.Drive;
 import org.slf4j.LoggerFactory;
 

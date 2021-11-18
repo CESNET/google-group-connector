@@ -1,8 +1,8 @@
 # G Suite connector
 
-[![Build Status](https://travis-ci.org/CESNET/google-group-connector.svg?branch=master)](https://travis-ci.org/CESNET/google-group-connector)
+![](https://github.com/CESNET/google-group-connector/workflows/test%20build/badge.svg)
 
-This repository contains java application, used by [Perun](http://perun.cesnet.cz/web/) to connect to [G Suite](https://gsuite.google.com/) service and synchronize users and groups from Perun to your domain in G Suite. 
+This repository contains java application, used by [Perun](https://perun-aai.org) to connect to [G Suite](https://gsuite.google.com/) service and synchronize users and groups from Perun to your domain in G Suite. 
 
 You can also use this application without Perun. You just need to make necessary setup and pass input file in expected format.
 
@@ -10,8 +10,8 @@ Sources of the Perun are located in own [repository](https://github.com/CESNET/p
 
 ## Requirements
 
-* Java >= 1.6
-* Maven >= 3.1.x
+* Java >= 17
+* Maven >= 3.6.x
 * G suite account
 
 ## Configuration
@@ -116,11 +116,11 @@ Second argument is type of action: "users", "groups" or "teamDrives".
 Third argument is path to CSV file (users, groups or teamDrives - depending on action)
 
 ```
-java -jar ./google-group-connector-2.0.0.jar DOMAIN ACTION PATH_TO_CSV_FILE
+java -jar ./google-group-connector-2.0.1.jar DOMAIN ACTION PATH_TO_CSV_FILE
 ```
 
 By default, application logs to console. You can change default logging by passing own logback configuration.
 
 ```$xslt
-java -Dlogback.configurationFile=file:///etc/perun/logback-google-groups.xml -jar ./google-group-connector-2.0.0.jar DOMAIN ACTION PATH_TO_CSV_FILE
+java -Dlogback.configurationFile=file:///etc/perun/logback-google-groups.xml -jar ./google-group-connector-2.0.1.jar DOMAIN ACTION PATH_TO_CSV_FILE
 ```

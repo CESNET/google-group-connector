@@ -1,7 +1,7 @@
 package cz.metacentrum.perun.googlegroupconnector;
 
-import com.google.api.services.admin.directory.model.Group;
-import com.google.api.services.admin.directory.model.User;
+import com.google.api.services.directory.model.Group;
+import com.google.api.services.directory.model.User;
 import com.google.api.services.drive.model.TeamDrive;
 import cz.metacentrum.perun.googlegroupconnector.exceptions.GoogleGroupsIOException;
 import java.io.File;

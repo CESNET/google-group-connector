@@ -1,9 +1,8 @@
 package cz.metacentrum.perun.googlegroupconnector;
 
-import com.google.api.services.admin.directory.Directory;
+import com.google.api.services.directory.Directory;
 import com.google.api.services.drive.Drive;
 
-import java.io.IOException;
 import java.util.Properties;
 
 /**
