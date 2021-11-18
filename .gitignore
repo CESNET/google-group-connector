@@ -54,6 +54,7 @@ nb-configuration.xml
 !.travis.yml
 !.gitignore
 !.gitattributes
+!.github
 *~
 
 # Window ignore #
