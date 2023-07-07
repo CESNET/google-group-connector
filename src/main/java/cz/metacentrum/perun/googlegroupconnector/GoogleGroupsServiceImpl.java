@@ -493,6 +493,7 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 			List<Group> domainGroups = new ArrayList<>(dg.getGroups());
 
 			for (Group group : groups) {
+				log.info("Processing group {}", group.getEmail());
 				Group domainGroup = null;
 				for (Group groupInDomain : domainGroups) {
 					if (Objects.equals(groupInDomain.getEmail(), group.getEmail())) {
@@ -598,9 +599,9 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 
 			// domain group is not empty, compare state
 			List<Member> domainGroupMembers = new ArrayList<>(dgm.getMembers());
-
+			log.debug("Members in group {}: {}", group.getEmail(), domainGroupMembers);
 			for (String perunMemberId : groupsMembers.get(group.getEmail())) {
-
+				log.info("Processing member: {}", perunMemberId);
 				Member domainGroupMember = null;
 				for (Member memberOfGroupInDomain : domainGroupMembers) {
 					// compare ID or Email
@@ -657,7 +658,7 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 
 			List<String> perunMembers = groupsMembers.get(group.getEmail());
 			for (String memberId : perunMembers) {
-
+				log.info("Processing member: {}", memberId);
 				Member member = new Member();
 				if (Objects.equals("id", memberIdType)) {
 					member.setId(memberId);
@@ -862,15 +863,11 @@ public class GoogleGroupsServiceImpl implements GoogleGroupsService {
 		try {
 			if (!dryRun) service.members().insert(groupName, member).execute();
 			String memberIdType = properties.getProperty("member_identifier", "id");
-
-			if (Objects.equals("id", memberIdType)) {
-				log.debug("Inserting member: {} to group: {}", member.getId(), groupName);
-			} else {
-				log.debug("Inserting member: {} to group: {}", member.getEmail(), groupName);
-			}
+			log.debug("Inserting member(ID/Email): {}/{} to group: {}", member.getId(), member.getEmail(), groupName);
 
 		} catch (IOException ex) {
-			throw new GoogleGroupsIOException("Something went wrong while inserting member " + member.getEmail() + " into group " + groupName + " in Google Groups", ex);
+			log.debug("Inserting member(ID/Email): {}/{} to group: {} FAILED - {} !", member.getId(), member.getEmail(), groupName, ex.getMessage());
+			throw new GoogleGroupsIOException("Something went wrong while inserting member(ID/Email)" + member.getId() + " /" + member.getEmail() + " into group " + groupName + " in Google Groups", ex);
 		}
 	}
 
