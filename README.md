@@ -116,11 +116,11 @@ Second argument is type of action: "users", "groups" or "teamDrives".
 Third argument is path to CSV file (users, groups or teamDrives - depending on action)
 
 ```
-java -jar ./google-group-connector-2.0.1.jar DOMAIN ACTION PATH_TO_CSV_FILE
+java -jar ./google-group-connector-2.0.2.jar DOMAIN ACTION PATH_TO_CSV_FILE
 ```
 
 By default, application logs to console. You can change default logging by passing own logback configuration.
 
 ```$xslt
-java -Dlogback.configurationFile=file:///etc/perun/logback-google-groups.xml -jar ./google-group-connector-2.0.1.jar DOMAIN ACTION PATH_TO_CSV_FILE
+java -Dlogback.configurationFile=file:///etc/perun/logback-google-groups.xml -jar ./google-group-connector-2.0.2.jar DOMAIN ACTION PATH_TO_CSV_FILE
 ```
