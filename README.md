@@ -1,3 +1,7 @@
+
+> This project has been discontinued and replaced with Google API
+> python library, which is used directly by Perun scripts. See the [docs](https://gitlab.ics.muni.cz/perun/perun-idm/perun-services/-/tree/main/docs).
+
 # G Suite connector
 
 ![](https://github.com/CESNET/google-group-connector/workflows/test%20build/badge.svg)
